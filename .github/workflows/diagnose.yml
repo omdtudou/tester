@@ -1,0 +1,36 @@
+# One-off: captures raw API responses so the scanner's mapping can be checked. Run by hand.
+name: diagnose
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: paper-test
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Raw Polymarket US responses
+        run: python tools/diag_pmus.py
+      - name: Scanner probe
+        run: |
+          mkdir -p data/diag
+          python arbscan.py --esports --probe --save data/diag/probe_responses.json > data/diag/probe.txt 2>&1 || true
+          cat data/diag/probe.txt
+      - name: Save
+        run: |
+          git config user.name "arbscan-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/diag
+          git commit -q -m "diagnostic $(date -u +%Y-%m-%dT%H:%MZ)" || exit 0
+          for i in 1 2 3; do git pull -q --rebase && git push -q && break; sleep 5; done
