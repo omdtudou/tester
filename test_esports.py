@@ -422,7 +422,8 @@ class MakerSimulation(unittest.TestCase):
                 E.run(args, FEES)
             with open(log, encoding="utf-8") as f:
                 scans = [json.loads(l) for l in f if '"type": "scan"' in l]
-        self.assertEqual(scans[1]["maker_errors"], 2)
+        self.assertEqual(scans[1]["maker_errors"], scans[0]["maker_quotes"])   # every lookup failed
+        self.assertGreater(scans[0]["maker_quotes"], 0)
         self.assertIn("HTTP 400", scans[1]["maker_error"])
         self.assertEqual(scans[1]["maker_fills"], 0)
 
