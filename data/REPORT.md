@@ -1,7 +1,7 @@
-# Paper test: Nov 05 03:46 to Nov 05 11:26 UTC
+# Paper test: Nov 05 03:46 to Nov 05 11:33 UTC
 
-- Watched for about **7.2 hours** (570 scans, one every ~45s).
-- Matches listed on both venues per scan: **11.8** on average.
+- Watched for about **7.3 hours** (580 scans, one every ~45s).
+- Matches listed on both venues per scan: **11.6** on average.
 - Markets seen per scan: Kalshi 110, Polymarket US 23.
 - Arbs: **0** appearances across **0** matches.
 
