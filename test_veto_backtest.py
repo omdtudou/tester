@@ -68,6 +68,11 @@ class VetoParsing(unittest.TestCase):
         # Only the two maps that were played: using them would leak a 2-0 result.
         self.assertIsNone(vb.series_maps({"bo": 3, "veto": [], "games": [["A", True], ["B", True]]}))
 
+    def test_unnamed_maps_are_not_used(self):
+        info = {"bo": 3, "veto": [["pick", "Lotus", "A"], ["pick", "N/A", "B"], ["decider", "Haven", ""]],
+                "games": [["Lotus", True], ["N/A", True], ["Haven", True]]}
+        self.assertIsNone(vb.series_maps(info))
+
     def test_best_of_inferred_from_veto(self):
         self.assertEqual(vb.series_maps({"bo": 0, "veto": [["decider", "Lotus", ""]], "games": []}), ["Lotus"])
 

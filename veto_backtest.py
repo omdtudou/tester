@@ -442,12 +442,14 @@ def series_maps(info: dict) -> Optional[List[str]]:
     were actually played, since a short series would leak the result."""
     bo = info.get("bo") or 0
     maps = [m for kind, m, _ in info.get("veto") or [] if kind.lower() in ("pick", "decider") and m]
+    if any(m.strip().lower() in ("n/a", "tbd", "") for m in maps[: bo or len(maps)]):
+        maps = []
     if not bo and len(maps) in (1, 3, 5):
         bo = len(maps)
     if bo and len(maps) >= bo:
         return maps[:bo]
     games = [g[0] for g in info.get("games") or [] if g[0]]
-    if bo and len(games) == bo:
+    if bo and len(games) == bo and not any(g.strip().lower() in ("n/a", "tbd") for g in games):
         return games
     return None
 
@@ -691,6 +693,7 @@ def build_rows(cache: Cache, since: Optional[str] = None, aliases: Optional[Dict
             drop("no Kalshi price an hour before")
             continue
         row = dict(r, vlr_id=hit["id"], maps=maps, y=1 if r["a_won"] else 0, pre=pre["mid"],
+                   pre_spread=(pre["ask"] - pre["bid"]) if pre["ask"] is not None and pre["bid"] is not None else None,
                    maps_a=sum(w + l for w, l in rec_a.values()), maps_b=sum(w + l for w, l in rec_b.values()),
                    level=event_level(info.get("event") or hit.get("ev") or ""),
                    event_name=info.get("event") or hit.get("ev") or "")
@@ -725,6 +728,7 @@ def analyse(rows: List[dict]) -> dict:
                                      (f"Kalshi, {POST_MIN} min after start", "post"))}
     shift = [logit(r["model"]) - logit(r["pre"]) for r in both]
     move = [logit(r["post"]) - logit(r["pre"]) for r in both]
+    res["raw"] = fit_offset_logit(ys, [0.0] * len(ys), shift)
     res["info"] = fit_offset_logit(ys, [logit(r["pre"]) for r in both], shift)
     res["left"] = fit_offset_logit(ys, [logit(r["post"]) for r in both],
                                    [logit(r["model"]) - logit(r["post"]) for r in both])
@@ -740,14 +744,16 @@ def analyse(rows: List[dict]) -> dict:
         res["bets"][thr] = (len(bets), sum(b["won"] for b in bets), sum(rets) / len(rets) if rets else None,
                             bootstrap_mean_ci(rets))
     res["slices"] = {}
+    spreads = sorted(r["pre_spread"] for r in both if r.get("pre_spread") is not None)
+    cut = spreads[len(spreads) // 2] if spreads else 0.0
+    # Liquidity is judged by the spread an hour before the start. Total volume would
+    # leak the result: series that go the distance trade far more.
     for name, keep in (("Top tier (VCT leagues, Masters, Champions)", lambda r: r["level"] == "top"),
                        ("Everything else", lambda r: r["level"] != "top"),
-                       ("Busier markets (top half by volume)", None),
-                       ("Quieter markets (bottom half by volume)", None)):
-        if keep is None:
-            vols = sorted(r["volume"] for r in both)
-            cut = vols[len(vols) // 2]
-            keep = (lambda r, c=cut: r["volume"] >= c) if name.startswith("Busier") else (lambda r, c=cut: r["volume"] < c)
+                       (f"Tighter markets (spread ≤ {cut * 100:.0f}¢ an hour before)",
+                        lambda r: r.get("pre_spread") is not None and r["pre_spread"] <= cut + 1e-9),
+                       (f"Wider markets (spread > {cut * 100:.0f}¢ an hour before)",
+                        lambda r: r.get("pre_spread") is not None and r["pre_spread"] > cut + 1e-9)):
         sub = [r for r in both if keep(r)]
         if len(sub) < 20:
             res["slices"][name] = (len(sub), None, None, 0, None)
@@ -787,8 +793,12 @@ def verdict(res: dict) -> str:
     if info_real:
         return ("Map records carry real information, but Kalshi's price had already absorbed it by "
                 f"{POST_MIN} minutes after the start. No edge left at the speed this test checks.")
+    raw_b, raw_se = res.get("raw", (0.0, float("inf")))
+    if raw_se < float("inf") and raw_b / raw_se > 2:
+        return ("No edge found: map records do say a little about who wins, but Kalshi's price an hour before "
+                "the start already includes it, and betting the gap showed no reliable profit after fees.")
     return ("No edge found: map records did not predict winners better than Kalshi's own price, even before "
-            "the veto. The market already knows what the map stats know.")
+            "the veto, and betting the gap showed no reliable profit after fees.")
 
 
 def render(rows, funnel, reasons, offsets, unmatched, res) -> str:
@@ -831,7 +841,10 @@ def render(rows, funnel, reasons, offsets, unmatched, res) -> str:
     bl, sl = res["left"]
     L.append("## Does the map information matter?")
     L.append("")
-    L.append(f"- Before the veto: weight on the map model's adjustment {bi:.2f} (± {si:.2f}). "
+    br, sr = res["raw"]
+    L.append(f"- Map records on their own, ignoring the price: weight {br:.2f} (± {sr:.2f}). Above 0 by more "
+             "than twice the ± means they do say something about who wins.")
+    L.append(f"- Beyond Kalshi's price an hour before: weight on the map model's adjustment {bi:.2f} (± {si:.2f}). "
              "Above 0 by more than twice the ± means map records add information to the pre-veto price; "
              "1.0 means the model's adjustment is the right size.")
     L.append(f"- After the market moved: weight on the gap between model and post price {bl:.2f} (± {sl:.2f}). "
