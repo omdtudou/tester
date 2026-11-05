@@ -1,0 +1,50 @@
+Historical endpoints:
+  /historical/cutoff: ok, keys market_positions_last_updated_ts, market_settled_ts, orders_updated_ts, trades_created_ts
+  /historical/markets: ok, keys cursor, markets
+
+== KXVALORANTGAME: 1679 settled events, 434 markets
+  close times 2026-08-29 .. 2026-11-01
+  markets with zero volume: 2; median volume 15526; top 882900
+  sample events: KXVALORANTGAME-26NOV011300KRM8GC, KXVALORANTGAME-26NOV010800RELSAM, KXVALORANTGAME-26NOV010400NOVAUR, KXVALORANTGAME-26OCT311400KRSRGC
+  trades KXVALORANTGAME-26SEP290500G2PR-PR: 6058 (2026-09-26T00:50 .. 2026-09-29T12:21)
+    candles: error 400
+  trades KXVALORANTGAME-26SEP180600GENFSF-FSF: 692 (2026-09-17T19:07 .. 2026-09-18T13:41)
+    candles (1 min): 521
+  trades KXVALORANTGAME-26SEP041100ATTAXHK-ATTAX: 264 (2026-09-04T15:07 .. 2026-09-04T17:45)
+    candles (1 min): 125
+
+== KXCS2GAME: 2000 settled events, 4000 markets
+  close times 2026-09-26 .. 2026-11-05
+  markets with zero volume: 117; median volume 6252; top 1090141
+  sample events: KXCS2GAME-26NOV041700UNDISG, KXCS2GAME-26NOV041600ALKAACHAMA, KXCS2GAME-26NOV041500BLIBRUTESQ, KXCS2GAME-26NOV041430NOTALA
+  trades KXCS2GAME-26OCT161300BBLGC-LGC: 7862 (2026-10-15T23:53 .. 2026-10-16T20:28)
+    candles (1 min): 575
+  trades KXCS2GAME-26OCT220900SPIMAY-MAY: 430 (2026-10-22T12:55 .. 2026-10-22T15:24)
+    candles (1 min): 146
+  trades KXCS2GAME-26OCT081300ENCEJUS-JUS: 201 (2026-10-08T16:57 .. 2026-10-08T18:43)
+    candles (1 min): 104
+
+== KXLOLGAME: 2000 settled events, 1036 markets
+  close times 2026-08-29 .. 2026-11-05
+  markets with zero volume: 6; median volume 33955; top 2175855
+  sample events: KXLOLGAME-26NOV041700LYGEN, KXLOLGAME-26NOV031700IGTES, KXLOLGAME-26OCT311900BLGHLE, KXLOLGAME-26OCT311600MKOIKC
+  trades KXLOLGAME-26NOV041700LYGEN-LY: 6704 (2026-11-01T05:03 .. 2026-11-05T00:28)
+    candles: error 400
+  trades KXLOLGAME-26SEP271200RSCG-RS: 903 (2026-09-27T02:34 .. 2026-09-27T16:40)
+    candles (1 min): 327
+  trades KXLOLGAME-26SEP261200FECBIG-BIG: 395 (2026-09-25T08:45 .. 2026-09-26T16:35)
+    candles (1 min): 773
+
+== KXDOTA2GAME: 1924 settled events, 1318 markets
+  close times 2026-08-29 .. 2026-11-04
+  markets with zero volume: 29; median volume 6659; top 335840
+  sample events: KXDOTA2GAME-26NOV041400LYNXALL, KXDOTA2GAME-26NOV041400HULGL, KXDOTA2GAME-26NOV041300STCOM, KXDOTA2GAME-26NOV041100XESPIRITAC
+  trades KXDOTA2GAME-26OCT081200TYPARI-PARI: 4993 (2026-10-08T13:48 .. 2026-10-08T21:28)
+    candles (1 min): 386
+  trades KXDOTA2GAME-26SEP0211004IKISYN-4IKI: 273 (2026-09-01T20:20 .. 2026-09-02T17:57)
+    candles (1 min): 654
+  trades KXDOTA2GAME-26NOV012300KINZEN-ZEN: 36 (2026-11-02T05:51 .. 2026-11-02T06:22)
+    candles (1 min): 9
+
+Sample trade row:
+{"count_fp": "792.57", "created_time": "2026-11-01T22:58:32.568672Z", "is_block_trade": false, "no_price_dollars": "0.0100", "taker_book_side": "ask", "taker_outcome_side": "no", "taker_side": "no", "ticker": "KXVALORANTGAME-26NOV011300KRM8GC-KR", "trade_id": "0727fc12-3e51-95d6-7768-a98bbe2cdb8a", "yes_price_dollars": "0.9900"}
