@@ -1,0 +1,33 @@
+# One-off: how much past esports data Kalshi keeps (for a veto backtest). Run by hand. Read-only.
+name: history-check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: history-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check Kalshi history
+        run: |
+          mkdir -p data/diag
+          python tools/diag_history.py 2>&1 | tee data/diag/history.txt
+      - name: Save
+        run: |
+          git config user.name "arbscan-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f data/diag/history.txt
+          git commit -q -m "history check $(date -u +%Y-%m-%dT%H:%MZ)" || exit 0
+          for i in 1 2 3; do git pull -q --rebase && git push -q && break; sleep 5; done
