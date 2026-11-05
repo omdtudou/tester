@@ -16,6 +16,7 @@ on:
 
 permissions:
   contents: write
+  actions: write      # lets each run queue the next one
 
 concurrency:
   group: paper-test
@@ -61,3 +62,11 @@ jobs:
           git add data
           git commit -q -m "paper test $(date -u +%Y-%m-%dT%H:%MZ)" || exit 0
           for i in 1 2 3; do git pull -q --rebase && git push -q && break; sleep 5; done
+
+      # Chain: queue the next run as soon as this one ends, so coverage doesn't depend on
+      # GitHub's cron (which can lag or not start on new repos). Stops after STOP_AFTER.
+      - name: Queue the next run
+        if: always() && steps.window.outputs.over != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run paper-test.yml --repo "$GITHUB_REPOSITORY" --ref main
