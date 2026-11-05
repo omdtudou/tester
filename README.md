@@ -114,6 +114,18 @@ This measures, without placing a single order:
   **20 seconds later** (how fast you would)
 - what each speed would have made
 
+It also simulates the **maker** version of the strategy:
+- Each scan it posts an imaginary Kalshi bid one cent above the best bid on every matched game. It only
+  posts where hedging that bid on Polymarket US would lock in a profit.
+- At the next scan it checks Kalshi's public trade history to see whether anyone sold into that bid.
+- Filled bids are valued two ways:
+  - **best case:** hedged instantly at the price when the bid was posted
+  - **worst case:** hedged when the fill was spotted, up to one scan later
+
+The real result for a fast bot would be somewhere in between. Turn it off with `--no-maker`.
+Kalshi's fee for resting orders is set with `--maker-fee`. The default, 0.0175, is a quarter of the
+taker rate; most Kalshi markets charge makers nothing.
+
 ### On GitHub (your computer can stay off)
 
 The included workflow (`.github/workflows/paper-test.yml`) runs on GitHub's servers for free.
@@ -219,6 +231,7 @@ carries, e.g. `--bet-on kalshi,draftkings`.
 | `--minutes` / `--hours` | | stop a paper run after this long |
 | `--paper-log FILE` | `paper.jsonl` | where the paper log goes |
 | `--report FILE` | | summarise a paper log |
+| `--no-maker` / `--maker-fee` | off / `0.0175` | skip the maker simulation / its Kalshi fee rate |
 
 ## What it doesn't do
 

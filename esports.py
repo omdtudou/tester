@@ -188,6 +188,7 @@ class Discovery:
     skipped: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
     notes: List[str] = field(default_factory=list)
     sample_market: Optional[dict] = None
+    pairs: list = field(default_factory=list)
 
 
 def parse_kalshi_start(event_ticker: str) -> Tuple[Optional[datetime], str]:
@@ -406,6 +407,7 @@ class Pair:
     kalshi: Listing
     pmus: Listing
     confirmed_date: bool
+    books: Optional[dict] = None     # filled in by evaluate_pair
 
 
 def match(kalshi: List[Listing], pmus: List[Listing]) -> Tuple[List[Pair], List[Listing], List[Listing], int]:
@@ -636,6 +638,8 @@ def evaluate_pair(http: Http, pair: Pair, fees: Dict[str, float], budget: float,
     for team in (a, b):
         yes_bids[team], no_bids[team] = kalshi_book(http, k.ids[team])
     state, pm_bids, pm_offers = pmus_book(http, p.ids[a])
+    pair.books = {"yes": yes_bids, "no": no_bids, "pm_state": state,
+                  "pm_bids": pm_bids, "pm_offers": pm_offers}
     stats.books_checked += 1
     if state and "OPEN" not in str(state).upper().replace("PREOPEN", ""):
         stats.not_open += 1
@@ -717,6 +721,7 @@ def scan(http: Http, games: List[str], series, aliases, fees, budget, min_profit
     disc = discover(http, games, series, aliases, pages)
     kalshi_all = [l for g in games for l in disc.kalshi.get(g, [])]
     pairs, un_k, un_p, ambiguous = match(kalshi_all, disc.pmus)
+    disc.pairs = pairs
     stats = EsStats(pairs=len(pairs))
     arbs = []
     for pr in pairs:
@@ -795,6 +800,161 @@ def probe_report(disc: Discovery, games: List[str], series, un_k, un_p, ambiguou
     return "\n".join(out)
 
 
+# --------------------------------------------------------------------------- maker simulation (paper only)
+#
+# A maker arb rests a bid on Kalshi (cheap or free) and, only once it fills, buys the other team on
+# Polymarket US. This simulates that without placing anything:
+#   post  - each scan, for each team on each matched game, a YES bid one cent above Kalshi's best bid
+#           (first in line), sized so that hedging at Polymarket US's current price locks a profit
+#   fill  - at the next scan, Kalshi's public trade history shows whether anyone sold into that price
+#   hedge - valued two ways: at the price when the bid was posted (best case: a bot that hedges
+#           instantly) and at the price when the fill was spotted (worst case: up to one scan later)
+# Quotes are reposted every scan, like a bot repricing.
+
+TICK = 0.01
+
+
+@dataclass
+class MakerQuote:
+    op: str
+    game: str
+    title: str
+    team: str               # team the Kalshi bid backs
+    ticker: str             # Kalshi market for that team (YES bid)
+    bid: float
+    improved: bool          # one tick above the best bid (first in line) vs joining it
+    size: int
+    hedge_team: str
+    hedge_slug: str
+    hedge_side: str         # long | short on Polymarket US
+    hedge_rate: float
+    hedge_cost: float       # $ to hedge `size` at post time, fees included
+    maker_rate: float
+    edge: float             # $ locked if fully filled and hedged at post-time prices
+    posted: datetime
+    pair: Optional["Pair"] = None
+
+    def maker_fee(self, n: float) -> float:
+        return ceil_cent(self.maker_rate * n * self.bid * (1 - self.bid)) if n > 0 else 0.0
+
+
+def _hedge_ladder(books: dict, pmus: "Listing", team: str) -> Ladder:
+    return _clean(books["pm_offers"]) if team == pmus.long_key else flip(books["pm_bids"])
+
+
+def _walk_cost(ladder: Ladder, rate: float, n: int) -> Optional[float]:
+    w = Walker(ladder, rate)
+    if w.depth() + 1e-9 < n:
+        return None
+    for _ in range(n):
+        w.add_one()
+    return round(w.spend + w.fee, 2)
+
+
+def maker_quotes(pairs: List["Pair"], fees: Dict[str, float], maker_rate: float, budget: float,
+                 min_profit_pct: float, now: datetime) -> List[MakerQuote]:
+    out = []
+    for pr in pairs:
+        books = pr.books
+        if not books or (books.get("pm_state") and "OPEN" not in str(books["pm_state"]).upper().replace("PREOPEN", "")):
+            continue
+        k, p = pr.kalshi, pr.pmus
+        a, b = sorted(k.keys)
+        hedge_rate = fees["polymarket_us"] if fees.get("pm_override") or p.fee_rate is None else p.fee_rate
+        for team, other in ((a, b), (b, a)):
+            bids = books["yes"].get(team) or []
+            asks = flip(books["no"].get(team) or [])
+            if not bids or not asks:
+                continue
+            best_bid, best_ask = max(x for x, _ in bids), asks[0][0]
+            bid = round(best_bid + TICK, 2)
+            improved = bid < best_ask - 1e-9
+            if not improved:
+                bid = best_bid
+            hedge = _hedge_ladder(books, p, other)
+            if not hedge or not 0 < bid < 1:
+                continue
+            best = None
+            hw = Walker(hedge, hedge_rate)
+            for n in range(1, int(hw.depth() + 1e-9) + 1):
+                hw.add_one()
+                maker_cost = ceil_cent(n * bid) + ceil_cent(maker_rate * n * bid * (1 - bid))
+                outlay = round(maker_cost + hw.spend + hw.fee, 2)
+                if outlay > budget + 1e-9:
+                    break
+                profit = round(n - outlay, 2)
+                if best is None or profit > best[1] + 1e-9:
+                    best = (n, profit, outlay, round(hw.spend + hw.fee, 2))
+            if not best or best[1] <= 0 or best[1] / best[2] * 100 < min_profit_pct:
+                continue
+            n, profit, outlay, hedge_cost = best
+            out.append(MakerQuote(
+                op=f"maker:{k.ids[team]}|{p.ids[other]}:{'long' if other == p.long_key else 'short'}",
+                game=GAMES[k.game]["name"], title=p.title, team=k.names[team], ticker=k.ids[team], bid=bid,
+                improved=improved, size=n, hedge_team=p.names[other], hedge_slug=p.ids[other],
+                hedge_side="long" if other == p.long_key else "short", hedge_rate=hedge_rate,
+                hedge_cost=hedge_cost, maker_rate=maker_rate, edge=profit, posted=now, pair=pr))
+    return out
+
+
+def kalshi_trades(http: Http, ticker: str, since: datetime) -> list:
+    data = http.get(f"{KALSHI_API}/markets/trades",
+                    {"ticker": ticker, "min_ts": int(since.timestamp()), "limit": 500}, min_interval=0.05) or {}
+    return data.get("trades") or []
+
+
+def maker_fill(trades: list, q: MakerQuote) -> Tuple[float, Optional[datetime]]:
+    """Contracts that would have filled our resting YES bid, and when the first did."""
+    filled, first = 0.0, None
+    for t in trades:
+        when = parse_iso(t.get("created_time"))
+        if when is None or when < q.posted:
+            continue
+        side = str(t.get("taker_outcome_side") or t.get("taker_side") or "").lower()
+        if side != "no":            # only a taker selling YES (buying NO) hits a resting YES bid
+            continue
+        try:
+            price = float(t.get("yes_price_dollars") if t.get("yes_price_dollars") is not None
+                          else float(t.get("yes_price", 0)) / 100)
+            count = float(t.get("count_fp") if t.get("count_fp") is not None else t.get("count", 0))
+        except (TypeError, ValueError):
+            continue
+        hit = price <= q.bid + 1e-9 if q.improved else price < q.bid - 1e-9
+        if hit and count > 0:
+            filled += count
+            first = when if first is None or when < first else first
+    return min(filled, float(q.size)), first
+
+
+def settle_quote(http: Http, q: MakerQuote, trades: list, now_books: Optional[dict], now: datetime) -> Optional[dict]:
+    """Result row for a quote that filled; None if it didn't."""
+    filled, first = maker_fill(trades, q)
+    n = int(filled + 1e-9)
+    if n < 1:
+        return None
+    cost_k = ceil_cent(n * q.bid) + q.maker_fee(n)
+    best_case = round(n - cost_k - round(q.hedge_cost * n / q.size, 2), 2)
+    if now_books is None:
+        state, bids, offers = pmus_book(http, q.hedge_slug)
+        now_books = {"pm_state": state, "pm_bids": bids, "pm_offers": offers}
+    ladder = _clean(now_books["pm_offers"]) if q.hedge_side == "long" else flip(now_books["pm_bids"])
+    hedge_now = _walk_cost(ladder, q.hedge_rate, n)
+    if hedge_now is not None:
+        worst_case, unhedged = round(n - cost_k - hedge_now, 2), 0
+    else:
+        # Couldn't hedge the full size: hedge what's there, mark the rest at the hedge-side mid.
+        depth = int(sum(qq for _, qq in ladder) + 1e-9)
+        part = _walk_cost(ladder, q.hedge_rate, depth) if depth else 0.0
+        mid = 1 - (ladder[0][0] if ladder else 0.5)
+        worst_case = round(depth - cost_k - (part or 0.0) + (n - depth) * mid, 2)
+        unhedged = n - depth
+    return {"type": "maker_fill", "t": now.isoformat(), "op": q.op, "game": q.game, "event": q.title,
+            "team": q.team, "bid": q.bid, "improved": q.improved, "size": q.size, "filled": n,
+            "posted": q.posted.isoformat(), "first_fill": first.isoformat() if first else None,
+            "spotted_after_s": round((now - first).total_seconds(), 1) if first else None,
+            "best_case": best_case, "worst_case": worst_case, "unhedged": unhedged}
+
+
 # --------------------------------------------------------------------------- paper trading
 
 def leg_ladder(http: Http, leg: EsLeg) -> Ladder:
@@ -859,12 +1019,30 @@ def paper(args, fees: Dict[str, float], games: List[str], series, aliases, http_
     stop_after = (args.minutes or 0) * 60 + (args.hours or 0) * 3600
     started = time.monotonic()
     scans = 0
+    use_maker = not getattr(args, "no_maker", False)
+    maker_rate = getattr(args, "maker_fee", 0.0175)
+    quotes: List[MakerQuote] = []
+
+    def settle(http: Http, books_by_slug: Dict[str, dict]) -> int:
+        n = 0
+        for q in quotes:
+            try:
+                res = settle_quote(http, q, kalshi_trades(http, q.ticker, q.posted),
+                                   books_by_slug.get(q.hedge_slug), datetime.now(timezone.utc))
+            except VenueError:
+                continue
+            if res:
+                _append(args.paper_log, res)
+                n += 1
+        return n
+
     while True:
         t_scan = time.monotonic()
         http = http_factory()
         stamp = datetime.now(timezone.utc).isoformat()
         row: dict = {"type": "scan", "t": stamp}
         arbs: List[EsArb] = []
+        disc = None
         try:
             arbs, stats, disc, _ = scan(http, games, series, aliases, fees, args.budget, args.min_profit,
                                         pages=args.pmus_pages)
@@ -874,6 +1052,19 @@ def paper(args, fees: Dict[str, float], games: List[str], series, aliases, http_
                        pmus_markets=len(disc.pmus), notes=disc.notes[:5])
         except VenueError as e:
             row["error"] = str(e)
+        if use_maker:
+            books = {pr.pmus.ids[k]: pr.books for pr in (disc.pairs if disc else []) if pr.books
+                     for k in pr.pmus.keys}
+            row["maker_fills"] = settle(http, books) if quotes else 0
+            now_dt = datetime.now(timezone.utc)
+            quotes = maker_quotes(disc.pairs, fees, maker_rate, args.budget, args.min_profit, now_dt) \
+                if disc else []
+            row["maker_quotes"] = len(quotes)
+            for q in quotes:
+                _append(args.paper_log, {"type": "maker_post", "t": now_dt.isoformat(), "op": q.op,
+                                         "game": q.game, "event": q.title, "team": q.team, "bid": q.bid,
+                                         "improved": q.improved, "size": q.size, "edge": q.edge,
+                                         "hedge_team": q.hedge_team, "hedge_cost": q.hedge_cost})
         row["calls"] = http.calls
         _append(args.paper_log, row)
         for a in arbs:
@@ -893,12 +1084,17 @@ def paper(args, fees: Dict[str, float], games: List[str], series, aliases, http_
         scans += 1
         status = f"error: {row['error']}" if "error" in row else \
             f"{row['pairs']} on both venues, {len(arbs)} arb"
+        if use_maker:
+            status += f", {row.get('maker_quotes', 0)} maker bids, {row.get('maker_fills', 0)} filled"
         print(f"[{datetime.now().strftime('%H:%M:%S')}] paper scan {scans}: {status}", flush=True)
         if stop_after and time.monotonic() - started + interval > stop_after:
             break
         if getattr(args, "max_scans", None) and scans >= args.max_scans:
             break
         time.sleep(max(0.0, interval - (time.monotonic() - t_scan)))
+    if use_maker and quotes:     # last chance for the final scan's bids to have filled
+        time.sleep(min(interval, 30))
+        settle(http_factory(), {})
     print(f"Log: {args.paper_log}. Summary: python arbscan.py --report {args.paper_log}")
     return 0
 
@@ -912,6 +1108,55 @@ def _episodes(times: List[datetime], max_gap: float) -> List[Tuple[datetime, dat
         else:
             eps.append((t, t))
     return eps
+
+
+def _maker_section(rows: list, watched: float, enough: bool) -> List[str]:
+    posts = [r for r in rows if r.get("type") == "maker_post"]
+    fills = [r for r in rows if r.get("type") == "maker_fill"]
+    if not posts and not fills:
+        return []
+    days = watched / 86400
+    best = sum(r.get("best_case", 0.0) for r in fills)
+    worst = sum(r.get("worst_case", 0.0) for r in fills)
+    delays = sorted(r["spotted_after_s"] for r in fills if r.get("spotted_after_s") is not None)
+    losers = sum(1 for r in fills if r.get("worst_case", 0) < 0)
+    short = sum(1 for r in fills if r.get("unhedged", 0) > 0)
+    avg_edge = sum(r.get("edge", 0.0) for r in posts) / len(posts) if posts else 0.0
+    out = ["", "## Maker strategy (simulated)", "",
+           f"- Resting Kalshi bids that would lock a profit if hedged: **{len(posts)}** posted across "
+           f"**{len({r.get('event') for r in posts})}** matches (reposted each scan); "
+           f"average **${avg_edge:.2f}** locked per bid if fully filled.",
+           f"- Filled (someone sold into the bid before the next scan): **{len(fills)}**"
+           + (f" ({len(fills) / len(posts):.1%} of bids)" if posts else "") + "."]
+    if fills:
+        per = (lambda x: f", about **${x / days:,.2f} per day watched**") if enough else (lambda x: "")
+        out.append(f"- Profit if hedged instantly (best case): **${best:,.2f}**{per(best)}.")
+        out.append(f"- Profit if hedged when spotted (worst case, median "
+                   f"{delays[len(delays) // 2] if delays else 0:.0f}s after the fill): **${worst:,.2f}**{per(worst)}.")
+        out.append(f"- Fills that lose money when hedged late: **{losers}**; couldn't fully hedge: **{short}**.")
+    if not enough:
+        v = "Too early to tell."
+    elif not fills:
+        v = ("No resting bid got filled at a profitable price, so the maker version doesn't look worth "
+             "building on this data.")
+    else:
+        b, w = best / days, worst / days
+        if w >= 10:
+            v = f"Promising even in the worst case (about ${w:.2f} a day). Worth building carefully."
+        elif b >= 10:
+            v = (f"Depends on hedging speed: about ${b:.2f} a day if the hedge goes in instantly, ${w:.2f} if it "
+                 f"lags. Only worth building if the bot hedges within a second.")
+        elif b >= 1:
+            v = f"Small: about ${b:.2f} a day at best. Probably not worth the risk of automating it."
+        else:
+            v = f"Tiny: under ${max(b, 0):.2f} a day even at best. Not worth building."
+    out.append("")
+    out.append(f"**Maker verdict:** {v}")
+    out.append("")
+    out.append("Fills are judged from Kalshi's public trade history: a bid counts as filled when a seller traded "
+               "at or below its price. That's optimistic about getting filled (the bid is assumed first in "
+               "line) and pessimistic about the hedge (spotted up to one scan late).")
+    return out
 
 
 def report(path: str) -> str:
@@ -1031,6 +1276,7 @@ def report(path: str) -> str:
             verdict += (f" By hand ({delays[-1]:g}s) it would be about "
                         f"${by_delay[delays[-1]]['per_day']:.2f} a day.")
     out.append(f"**Verdict:** {verdict}")
+    out.extend(_maker_section(rows, watched, enough))
     out.append("")
     out.append("Assumes both limit orders fill together at the slip prices. In practice one leg goes in "
                "before the other, so real results will be a bit worse. Arbs that appear and vanish between "

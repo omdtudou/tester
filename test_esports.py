@@ -344,6 +344,95 @@ def synthetic_log(path, hours, arb_every=None, profit=1.5, fill="full", error=No
                                         "fillable_n": n, "profit_if_placed": profit if n else None}) + "\n")
 
 
+class MakerSimulation(unittest.TestCase):
+    def quotes(self):
+        http = replay_http()
+        _, _, disc, _ = E.scan(http, ["valorant"], {}, {}, dict(FEES, polymarket_us=0.0695), 100.0, 0.25)
+        now = datetime(2026, 11, 5, 4, tzinfo=timezone.utc)
+        return http, E.maker_quotes(disc.pairs, dict(FEES, polymarket_us=0.0695), 0.0175, 100.0, 0.25, now)
+
+    def test_quote_is_one_tick_above_best_bid_and_locks_profit(self):
+        _, qs = self.quotes()
+        q = next(q for q in qs if q.team == "Cloud9")
+        self.assertEqual((q.bid, q.improved, q.size, q.hedge_team), (0.43, True, 104, "Leviatán"))
+        self.assertAlmostEqual(q.edge, 104 - (44.72 + 0.45) - 54.26, places=2)   # $4.57
+        self.assertLessEqual(44.72 + 0.45 + q.hedge_cost, 100)
+
+    def test_fill_rules(self):
+        _, qs = self.quotes()
+        q = next(q for q in qs if q.team == "Cloud9")
+        t = lambda side, price, count, mins=1: {"taker_outcome_side": side, "yes_price_dollars": str(price),
+                                                "count_fp": str(count),
+                                                "created_time": (q.posted + E.timedelta(minutes=mins)).isoformat()}
+        self.assertEqual(E.maker_fill([t("no", 0.43, 30)], q)[0], 30)          # seller at our price
+        self.assertEqual(E.maker_fill([t("no", 0.40, 500)], q)[0], 104)        # capped at our size
+        self.assertEqual(E.maker_fill([t("yes", 0.43, 30)], q)[0], 0)          # a buyer doesn't hit our bid
+        self.assertEqual(E.maker_fill([t("no", 0.44, 30)], q)[0], 0)           # above our bid
+        self.assertEqual(E.maker_fill([t("no", 0.43, 30, mins=-1)], q)[0], 0)  # before we posted
+        joined = E.MakerQuote(**{**q.__dict__, "improved": False})
+        self.assertEqual(E.maker_fill([t("no", 0.43, 30)], joined)[0], 0)      # joined: need a trade through
+        self.assertEqual(E.maker_fill([t("no", 0.42, 30)], joined)[0], 30)
+
+    def test_best_and_worst_case(self):
+        http, qs = self.quotes()
+        q = next(q for q in qs if q.team == "Cloud9")
+        sell = [{"taker_outcome_side": "no", "yes_price_dollars": "0.43", "count_fp": "104",
+                 "created_time": (q.posted + E.timedelta(seconds=5)).isoformat()}]
+        later = q.posted + E.timedelta(seconds=40)
+        same = E.settle_quote(http, q, sell, q.pair.books, later)
+        self.assertEqual((same["filled"], same["best_case"], same["worst_case"], same["unhedged"]),
+                         (104, 4.57, 4.57, 0))
+        self.assertEqual(same["spotted_after_s"], 35.0)
+        moved = dict(q.pair.books, pm_bids=[(0.44, 500.0)])          # Leviatán now costs 56¢
+        worse = E.settle_quote(http, q, sell, moved, later)
+        self.assertLess(worse["worst_case"], 0)
+        self.assertEqual(worse["best_case"], 4.57)
+        thin = dict(q.pair.books, pm_bids=[(0.50, 40.0)])             # only 40 available to hedge
+        part = E.settle_quote(http, q, sell, thin, later)
+        self.assertEqual(part["unhedged"], 64)
+
+    def test_paper_loop_logs_maker_fills_and_reports_them(self):
+        def fake_trades(http, ticker, since):
+            return [{"taker_side": "no", "yes_price_dollars": "0.10", "count_fp": "1000",
+                     "created_time": (since + E.timedelta(seconds=3)).isoformat()}]
+        with tempfile.TemporaryDirectory() as d:
+            log = os.path.join(d, "p.jsonl")
+            args = arbscan.parse_args(["--paper", "--demo", "--watch", "1", "--recheck", "1", "--paper-log", log])
+            args.max_scans = 3
+            with mock.patch.object(E, "kalshi_trades", fake_trades), mock.patch.object(E.time, "sleep"), \
+                    redirect_stdout(io.StringIO()):
+                E.run(args, dict(FEES, polymarket_us=0.0695))
+            with open(log, encoding="utf-8") as f:
+                kinds = [json.loads(line)["type"] for line in f]
+            report = E.report(log)
+        self.assertEqual(kinds.count("maker_post"), 6)      # 2 bids per scan x 3 scans
+        self.assertEqual(kinds.count("maker_fill"), 6)      # every bid "filled", incl. the final settle
+        self.assertIn("## Maker strategy (simulated)", report)
+        self.assertIn("Filled (someone sold into the bid before the next scan): **6**", report)
+
+    def test_maker_verdicts(self):
+        def verdict(best, worst):
+            rows = [{"type": "scan", "t": (datetime(2026, 11, 5, tzinfo=timezone.utc) + E.timedelta(minutes=m)).isoformat(),
+                     "pairs": 10} for m in range(24 * 60)]
+            rows.append({"type": "maker_post", "event": "A vs B", "edge": 3.0})
+            rows.append({"type": "maker_fill", "best_case": best, "worst_case": worst, "spotted_after_s": 20})
+            return "\n".join(E._maker_section(rows, 86400.0, True))
+        self.assertIn("Promising even in the worst case", verdict(15, 12))
+        self.assertIn("Depends on hedging speed", verdict(15, -4))
+        self.assertIn("Small", verdict(3, 1))
+        self.assertIn("Tiny", verdict(0.4, -1))
+
+    def test_no_maker_flag(self):
+        with tempfile.TemporaryDirectory() as d:
+            log = os.path.join(d, "p.jsonl")
+            args = arbscan.parse_args(["--paper", "--demo", "--no-maker", "--recheck", "1", "--paper-log", log])
+            args.max_scans = 1
+            with mock.patch.object(E.time, "sleep"), redirect_stdout(io.StringIO()):
+                E.run(args, FEES)
+            with open(log, encoding="utf-8") as f:
+                self.assertNotIn("maker_post", f.read())
+
+
 class TwoSpeeds(unittest.TestCase):
     def test_rechecks_at_bot_and_human_speed(self):
         self.assertEqual(E.recheck_delays("20, 2"), [2.0, 20.0])

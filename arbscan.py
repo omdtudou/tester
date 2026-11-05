@@ -714,6 +714,10 @@ def parse_args(argv=None) -> argparse.Namespace:
     pt.add_argument("--minutes", type=float, help="stop after this many minutes")
     pt.add_argument("--hours", type=float, help="stop after this many hours")
     pt.add_argument("--report", metavar="LOG", help="summarise a paper-trading log and exit")
+    pt.add_argument("--no-maker", action="store_true", help="skip the maker-strategy simulation")
+    pt.add_argument("--maker-fee", type=float, default=0.0175,
+                    help="Kalshi fee rate for resting orders in the maker simulation (default 0.0175, "
+                         "a quarter of the taker rate; most markets charge 0)")
     return p.parse_args(argv)
 
 
