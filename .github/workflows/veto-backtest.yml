@@ -1,0 +1,51 @@
+# Map-veto backtest (Valorant on Kalshi). Run by hand. Read-only: public data, no trading.
+# Each run continues from the cache in data/backtest, so it can be run again to go further back.
+name: veto-backtest
+
+on:
+  workflow_dispatch:
+    inputs:
+      since:
+        description: "Only matches from this date (YYYY-MM-DD); blank = all"
+        default: ""
+      max_matches:
+        description: "Newest N matches only (0 = all)"
+        default: "0"
+      budget_minutes:
+        description: "Stop fetching after this many minutes"
+        default: "80"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: veto-backtest
+  cancel-in-progress: false
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the vlr.gg client
+        run: pip install -q vlrdevapi
+      - name: Collect and report
+        env:
+          SINCE: ${{ inputs.since }}
+          MAX: ${{ inputs.max_matches }}
+          BUDGET: ${{ inputs.budget_minutes }}
+        run: |
+          python veto_backtest.py --collect --report ${SINCE:+--since "$SINCE"} \
+            --max-matches "${MAX:-0}" --budget-minutes "${BUDGET:-80}" --out data/backtest/VETO_REPORT.md
+      - name: Save cache and report
+        if: always()
+        run: |
+          git config user.name "arbscan-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f data/backtest
+          git commit -q -m "veto backtest $(date -u +%Y-%m-%dT%H:%MZ)" || exit 0
+          for i in 1 2 3 4 5; do git pull -q --rebase && git push -q && break; sleep 5; done
