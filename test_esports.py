@@ -410,6 +410,22 @@ class MakerSimulation(unittest.TestCase):
         self.assertIn("## Maker strategy (simulated)", report)
         self.assertIn("Filled (someone sold into the bid before the next scan): **6**", report)
 
+    def test_trade_lookup_failures_are_logged_not_hidden(self):
+        def broken(http, ticker, since):
+            raise E.VenueError("https://api.elections.kalshi.com/trade-api/v2/markets/trades failed (HTTP 400)")
+        with tempfile.TemporaryDirectory() as d:
+            log = os.path.join(d, "p.jsonl")
+            args = arbscan.parse_args(["--paper", "--demo", "--watch", "1", "--recheck", "1", "--paper-log", log])
+            args.max_scans = 2
+            with mock.patch.object(E, "kalshi_trades", broken), mock.patch.object(E.time, "sleep"), \
+                    redirect_stdout(io.StringIO()):
+                E.run(args, FEES)
+            with open(log, encoding="utf-8") as f:
+                scans = [json.loads(l) for l in f if '"type": "scan"' in l]
+        self.assertEqual(scans[1]["maker_errors"], 2)
+        self.assertIn("HTTP 400", scans[1]["maker_error"])
+        self.assertEqual(scans[1]["maker_fills"], 0)
+
     def test_maker_verdicts(self):
         def verdict(best, worst):
             rows = [{"type": "scan", "t": (datetime(2026, 11, 5, tzinfo=timezone.utc) + E.timedelta(minutes=m)).isoformat(),

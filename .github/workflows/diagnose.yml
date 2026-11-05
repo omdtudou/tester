@@ -8,7 +8,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: paper-test
+  group: diagnose
   cancel-in-progress: false
 
 jobs:
@@ -22,6 +22,8 @@ jobs:
           python-version: "3.12"
       - name: Raw Polymarket US responses
         run: python tools/diag_pmus.py
+      - name: Raw Kalshi trades for recently bid markets
+        run: python tools/diag_kalshi_trades.py
       - name: Scanner probe
         run: |
           mkdir -p data/diag

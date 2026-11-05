@@ -1023,18 +1023,23 @@ def paper(args, fees: Dict[str, float], games: List[str], series, aliases, http_
     maker_rate = getattr(args, "maker_fee", 0.0175)
     quotes: List[MakerQuote] = []
 
-    def settle(http: Http, books_by_slug: Dict[str, dict]) -> int:
-        n = 0
+    def settle(http: Http, books_by_slug: Dict[str, dict], row: dict) -> None:
+        """Check last scan's bids against Kalshi's trades; count trades seen and errors so a silent
+        failure can't pass for 'nobody traded'."""
+        fills = trades_seen = errs = 0
         for q in quotes:
             try:
-                res = settle_quote(http, q, kalshi_trades(http, q.ticker, q.posted),
-                                   books_by_slug.get(q.hedge_slug), datetime.now(timezone.utc))
-            except VenueError:
+                trades = kalshi_trades(http, q.ticker, q.posted)
+                trades_seen += len(trades)
+                res = settle_quote(http, q, trades, books_by_slug.get(q.hedge_slug), datetime.now(timezone.utc))
+            except VenueError as e:
+                errs += 1
+                row.setdefault("maker_error", str(e))
                 continue
             if res:
                 _append(args.paper_log, res)
-                n += 1
-        return n
+                fills += 1
+        row.update(maker_fills=fills, maker_trades_seen=trades_seen, maker_errors=errs)
 
     while True:
         t_scan = time.monotonic()
@@ -1055,7 +1060,10 @@ def paper(args, fees: Dict[str, float], games: List[str], series, aliases, http_
         if use_maker:
             books = {pr.pmus.ids[k]: pr.books for pr in (disc.pairs if disc else []) if pr.books
                      for k in pr.pmus.keys}
-            row["maker_fills"] = settle(http, books) if quotes else 0
+            if quotes:
+                settle(http, books, row)
+            else:
+                row.update(maker_fills=0, maker_trades_seen=0, maker_errors=0)
             now_dt = datetime.now(timezone.utc)
             quotes = maker_quotes(disc.pairs, fees, maker_rate, args.budget, args.min_profit, now_dt) \
                 if disc else []
@@ -1094,7 +1102,9 @@ def paper(args, fees: Dict[str, float], games: List[str], series, aliases, http_
         time.sleep(max(0.0, interval - (time.monotonic() - t_scan)))
     if use_maker and quotes:     # last chance for the final scan's bids to have filled
         time.sleep(min(interval, 30))
-        settle(http_factory(), {})
+        final = {"type": "maker_settle", "t": datetime.now(timezone.utc).isoformat()}
+        settle(http_factory(), {}, final)
+        _append(args.paper_log, final)
     print(f"Log: {args.paper_log}. Summary: python arbscan.py --report {args.paper_log}")
     return 0
 
