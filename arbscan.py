@@ -56,7 +56,7 @@ class Venue:
 # override with --fee VENUE=RATE if a venue updates its schedule.
 VENUES: Dict[str, Venue] = {
     "kalshi": Venue("kalshi", "Kalshi", "exchange", 0.07, "cent_up", 0.01, "contracts"),
-    "polymarket_us": Venue("polymarket_us", "Polymarket US", "exchange", 0.05, "cent_up", 0.01, "shares"),
+    "polymarket_us": Venue("polymarket_us", "Polymarket US", "exchange", 0.0695, "cent_up", 0.01, "shares"),
     "polymarket": Venue("polymarket", "Polymarket", "exchange", 0.05, "5dp", 0.01, "shares"),
     "pinnacle": Venue("pinnacle", "Pinnacle", "book"),
 }

@@ -173,6 +173,7 @@ class Listing:
     start_kind: str = "none"        # time | date | loose | none
     long_key: Optional[str] = None  # pmus: which team the long side is
     fmt: Optional[str] = None       # "BO3" etc. when stated
+    fee_rate: Optional[float] = None  # pmus: the market's own feeCoefficient
 
     @property
     def keys(self) -> frozenset:
@@ -282,11 +283,21 @@ def classify_game(text: str, slug: str) -> Optional[str]:
     return None
 
 
+def _fee_coefficient(m: dict) -> Optional[float]:
+    try:
+        v = float(m.get("feeCoefficient"))
+    except (TypeError, ValueError):
+        return None
+    return v if 0 < v < 0.25 else None
+
+
 def pmus_listing(m: dict, game_hint: Optional[str], aliases) -> Tuple[Optional[Listing], str]:
-    if m.get("closed") is True or m.get("active") is False:
+    status = str(m.get("status") or "").upper()
+    if m.get("closed") is True or m.get("active") is False or (status and not status.endswith("OPEN")):
         return None, "closed"
+    # Live API values look like "SPORTS_MARKET_TYPE_MONEYLINE"; docs show plain "MONEYLINE".
     v2 = str(m.get("sportsMarketTypeV2") or "").upper()
-    if v2 and v2 != "MONEYLINE":
+    if v2 and not v2.endswith("MONEYLINE"):
         return None, "not a series-winner market"
     slug = str(m.get("slug") or "")
     text = " ".join(str(m.get(k) or "") for k in
@@ -323,7 +334,8 @@ def pmus_listing(m: dict, game_hint: Optional[str], aliases) -> Tuple[Optional[L
     fm = FORMAT_RE.search(text)
     return Listing(venue="polymarket_us", game=game, title=str(m.get("question") or m.get("title") or slug),
                    names=dict(zip(keys, names)), ids={k: slug for k in keys}, start=start, start_kind=kind,
-                   long_key=long_key, fmt=f"BO{fm.group(1) or fm.group(2)}" if fm else None), "ok"
+                   long_key=long_key, fmt=f"BO{fm.group(1) or fm.group(2)}" if fm else None,
+                   fee_rate=_fee_coefficient(m)), "ok"
 
 
 def pmus_listings(http: Http, games: List[str], aliases, disc: Discovery, pages: int) -> List[Listing]:
@@ -379,7 +391,7 @@ def _window(a: Listing, b: Listing) -> Optional[float]:
         return 96.0
     if "date" in kinds:
         return 48.0
-    return 36.0
+    return 12.0     # both venues give an exact start time
 
 
 def dates_compatible(a: Listing, b: Listing) -> Optional[bool]:
@@ -548,6 +560,7 @@ class EsLeg:
     fee: float
     top_size: float    # contracts at the best price
     side: str = ""     # kalshi: yes|no on market_id; polymarket_us: long|short
+    fee_rate: float = 0.0
 
     @property
     def cost(self) -> float:
@@ -635,6 +648,7 @@ def evaluate_pair(http: Http, pair: Pair, fees: Dict[str, float], budget: float,
                         flip(yes_bids[other[t]]), "no")]
                    for t in (a, b)}
     pm_way = {p.long_key: _clean(pm_offers), other[p.long_key]: flip(pm_bids)}
+    pm_rate = fees["polymarket_us"] if fees.get("pm_override") or p.fee_rate is None else p.fee_rate
     if not any(yes_bids[t] or no_bids[t] for t in (a, b)) or not (pm_bids or pm_offers):
         stats.empty_books += 1
         return None
@@ -650,7 +664,7 @@ def evaluate_pair(http: Http, pair: Pair, fees: Dict[str, float], budget: float,
                 continue
             if lad_k[0][0] + lad_p[0][0] < 1.0:
                 gross_seen = True
-            r = optimise(lad_k, fees["kalshi"], lad_p, fees["polymarket_us"], budget)
+            r = optimise(lad_k, fees["kalshi"], lad_p, pm_rate, budget)
             if r and r["profit"] > 0 and (best is None or r["profit"] > best[0]["profit"]):
                 best = (r, t_k, label, ticker, lad_k, t_p, lad_p, k_side)
     if best is None:
@@ -667,9 +681,9 @@ def evaluate_pair(http: Http, pair: Pair, fees: Dict[str, float], budget: float,
     sk, fk, wk, ak = r["a"]
     sp, fp, wp, ap = r["b"]
     legs = [
-        EsLeg("kalshi", k.names[t_k], label, ticker, r["n"], wk, ak, sk, fk, lad_k[0][1], k_side),
+        EsLeg("kalshi", k.names[t_k], label, ticker, r["n"], wk, ak, sk, fk, lad_k[0][1], k_side, fees["kalshi"]),
         EsLeg("polymarket_us", p.names[t_p], f'"{p.names[t_p]}"', p.ids[t_p], r["n"], wp, ap, sp, fp,
-              lad_p[0][1], p_side),
+              lad_p[0][1], p_side, pm_rate),
     ]
     depth_limited = r["outlay"] < budget * 0.9
 
@@ -813,12 +827,12 @@ def recheck(http: Http, arb: EsArb, fees: Dict[str, float], budget: float) -> di
     fillable = int(min(sum(q for _, q in c) for c in caps) + 1e-9)
     profit = None
     if fillable >= 1:
-        walkers = [Walker(c, fees[l.venue]) for c, l in zip(caps, arb.legs)]
+        walkers = [Walker(c, l.fee_rate) for c, l in zip(caps, arb.legs)]
         for _ in range(fillable):
             for w in walkers:
                 w.add_one()
         profit = round(fillable - sum(w.spend + w.fee for w in walkers), 2)
-    again = optimise(fresh[0], fees[arb.legs[0].venue], fresh[1], fees[arb.legs[1].venue], budget) \
+    again = optimise(fresh[0], arb.legs[0].fee_rate, fresh[1], arb.legs[1].fee_rate, budget) \
         if fresh[0] and fresh[1] else None
     still = round(again["profit"] / again["outlay"] * 100, 3) if again and again["profit"] > 0 else None
     return {"fillable_n": fillable, "profit_if_placed": profit, "still_arb_pct": still}
@@ -1016,6 +1030,7 @@ def _parse_series(items: List[str]) -> Dict[str, List[str]]:
 
 
 def run(args, fees: Dict[str, float]) -> int:
+    fees = dict(fees, pm_override=any(f.split("=")[0].strip() == "polymarket_us" for f in (args.fee or [])))
     games = [g.strip().lower() for g in (args.games or ",".join(GAMES)).split(",") if g.strip()]
     bad = [g for g in games if g not in GAMES]
     if bad:

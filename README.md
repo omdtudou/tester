@@ -183,11 +183,11 @@ NBA | Los Angeles Lakers @ Boston Celtics | LIVE | Moneyline
 | Venue | Default role | Taker fee |
 |---|---|---|
 | Kalshi | bet on | `0.07 × contracts × p × (1 − p)`, rounded up to the cent |
-| Polymarket US | bet on | `0.05 × shares × p × (1 − p)` |
+| Polymarket US | bet on | `0.0695 × shares × p × (1 − p)`; esports mode reads each market's own rate |
 | Polymarket (global) | off | `0.05 × shares × p × (1 − p)`; not open to US residents |
 | Pinnacle | sports reference | none; doesn't accept US customers |
 
-**Fees change.** Override a rate with `--fee kalshi=0.07`. Resting (maker) orders cost less: often
+**Fees change.** Polymarket US publishes each market's fee rate (`feeCoefficient`). Esports mode uses it automatically; it was 0.0695 on every esports and sports market checked on Nov 5, 2026. Override any rate with `--fee kalshi=0.07`. Resting (maker) orders cost less: often
 nothing, though on some major sports series Kalshi charges makers a quarter of the taker rate.
 
 **Choosing where you bet.** In sports mode, `--bet-on` picks the venues you trade on. Add

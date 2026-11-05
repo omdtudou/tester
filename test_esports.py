@@ -227,6 +227,65 @@ class EndToEnd(unittest.TestCase):
         self.assertEqual((arbs, stats.not_open), ([], 1))
 
 
+class LiveApiShapes(unittest.TestCase):
+    """Fixes found by running against the live APIs from GitHub Actions on 2026-11-05."""
+
+    def test_live_market_type_values(self):
+        ok = pm_market("aec-cs2-a-b-2026-11-05", "Who will win A vs B", [("Alpha", True), ("Bravo", False)],
+                       sportsMarketTypeV2="SPORTS_MARKET_TYPE_MONEYLINE", sportsMarketType="esports_match_winner")
+        fut = dict(ok, sportsMarketTypeV2="SPORTS_MARKET_TYPE_FUTURE", slug="x-cs2-future")
+        self.assertEqual(E.pmus_listing(ok, "cs2", {})[1], "ok")
+        self.assertEqual(E.pmus_listing(fut, "cs2", {}), (None, "not a series-winner market"))
+
+    def test_resolved_status_is_skipped(self):
+        m = pm_market("aec-cs2-a-b", "A vs B", [("Alpha", True), ("Bravo", False)], status="MARKET_STATUS_RESOLVED")
+        self.assertEqual(E.pmus_listing(m, "cs2", {}), (None, "closed"))
+
+    def test_market_fee_coefficient_is_used(self):
+        http = replay_http()
+        for url, body in http.replay.items():
+            if "/v1/search" in url and body:
+                for ev in body.get("events", []):
+                    for m in ev.get("markets", []):
+                        m["feeCoefficient"] = 0.0695
+        arbs = E.scan(http, ["lol"], {}, {}, FEES, 100.0, 0.25)[0]
+        pm = next(l for l in arbs[0].legs if l.venue == "polymarket_us")
+        self.assertEqual(pm.fee_rate, 0.0695)
+        overridden = E.scan(http, ["lol"], {}, {}, dict(FEES, pm_override=True), 100.0, 0.25)[0]
+        self.assertEqual(next(l for l in overridden[0].legs if l.venue == "polymarket_us").fee_rate, 0.05)
+
+    def test_exact_times_a_day_apart_do_not_pair(self):
+        k = listing("kalshi", ["MEIA NOITE", "Rush"], datetime(2026, 11, 5, 21, tzinfo=timezone.utc), "time")
+        p = listing("polymarket_us", ["MEIA NOITE", "Rush"], datetime(2026, 11, 6, 22, tzinfo=timezone.utc), "time")
+        self.assertEqual(E.match([k], [p])[0], [])
+
+
+class LiveCapture(unittest.TestCase):
+    """Real Kalshi + Polymarket US listings captured on 2026-11-05 (trimmed)."""
+    path = os.path.join(HERE, "fixtures", "live_2026-11-05.json")
+
+    def setUp(self):
+        if not os.path.exists(self.path):
+            self.skipTest("live fixture not present")
+        with open(self.path, encoding="utf-8") as f:
+            self.rec = json.load(f)["responses"]
+
+    def test_real_listings_match_correctly(self):
+        disc = E.discover(E.Http(replay=self.rec), list(E.GAMES), {}, {}, 5)
+        pairs, *_ = E.match([l for g in disc.kalshi.values() for l in g], disc.pmus)
+        names = {frozenset(p.pmus.names.values()) for p in pairs}
+        self.assertEqual(len(disc.pmus), 23)
+        self.assertEqual(len(pairs), 10)
+        self.assertIn(frozenset({"Gen.G Esports", "Invictus Gaming"}), names)
+        self.assertIn(frozenset({"Grêmio Esports", "underw0rld"}), names)
+        self.assertNotIn(frozenset({"MEIA NOITE", "Rush"}), names)       # listed 25 hours apart
+        for p in pairs:
+            self.assertEqual(p.kalshi.keys, p.pmus.keys)
+            self.assertTrue(p.confirmed_date)
+            self.assertLessEqual(abs((p.kalshi.start - p.pmus.start).total_seconds()), 12 * 3600)
+            self.assertAlmostEqual(p.pmus.fee_rate, 0.0695)
+
+
 class PaperTrading(unittest.TestCase):
     def first_arb(self, game="valorant"):
         http = replay_http()

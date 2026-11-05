@@ -50,7 +50,7 @@ class FeeMath(unittest.TestCase):
 
     def test_polymarket_sports_fee(self):
         self.assertEqual(A.exchange_fee(A.VENUES["polymarket"], 100, 0.50), 1.25)
-        self.assertEqual(A.exchange_fee(A.VENUES["polymarket_us"], 100, 0.24), 0.92)  # 0.912 rounded up
+        self.assertEqual(A.exchange_fee(A.VENUES["polymarket_us"], 100, 0.24), 1.27)  # 0.0695 rate: 1.2677 up
 
     def test_price_recovered_from_rounded_odds(self):
         self.assertEqual(A.price_from_odds(1.89, 0.01), 0.53)   # 1/1.89 = 0.5291
@@ -121,10 +121,10 @@ class Arbs(unittest.TestCase):
         opps, _ = A.scan(sample_events("demo-nba-1"), cfg(reference=[]), NOW)
         (o,) = opps
         k, p = sorted(o.legs, key=lambda l: l.venue)
-        self.assertEqual((k.venue, k.label, k.price, k.contracts, k.fee), ("kalshi", "Boston Celtics", 0.52, 101, 1.77))
+        self.assertEqual((k.venue, k.label, k.price, k.contracts, k.fee), ("kalshi", "Boston Celtics", 0.52, 100, 1.75))
         self.assertEqual((p.venue, p.label, p.price, p.contracts, p.fee),
-                         ("polymarket_us", "Los Angeles Lakers", 0.44, 101, 1.25))
-        self.assertEqual((o.outlay, o.profit), (99.98, 1.02))
+                         ("polymarket_us", "Los Angeles Lakers", 0.44, 100, 1.72))
+        self.assertEqual((o.outlay, o.profit), (99.47, 0.53))
 
     def test_fees_wipe_out_one_cent_edge(self):
         opps, stats = A.scan(sample_events("demo-nhl-1"), cfg(reference=[]), NOW)
@@ -148,8 +148,8 @@ class Arbs(unittest.TestCase):
         opps, _ = A.scan(sample_events("demo-ncaaf-1"), cfg(bet_on=["kalshi", "polymarket_us", "pinnacle"]), NOW)
         (arb,) = [o for o in opps if o.kind == "arb"]
         pin = next(l for l in arb.legs if l.venue == "pinnacle")
-        self.assertEqual((pin.stake, pin.payout), (36.73, 101.0))
-        self.assertEqual(arb.profit, 1.45)
+        self.assertEqual((pin.stake, pin.payout), (36.37, 100.01))
+        self.assertEqual(arb.profit, 0.97)
 
     def test_nfl_moneyline_gets_tie_warning(self):
         opps, _ = A.scan(sample_events("demo-nfl-1"), cfg(reference=[]), NOW)
