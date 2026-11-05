@@ -133,8 +133,22 @@ def valorant_rows(cache):
             if kind.lower() == "decider":
                 picker[m] = "Decider"
             elif kind.lower() == "pick":
-                picker[m] = ("Fav" if same(team, fav_tag) or same(team, fav)
-                             else "Dog" if same(team, dog_tag) or same(team, dog) else team)
+                t = (team or "").strip().lower()
+                if t and t in ((info.get("g1") or "").lower(), (info.get("g2") or "").lower()):
+                    is_team1 = t == (info.get("g1") or "").lower()
+                    picker[m] = "Fav" if is_team1 == (a_is_1 == fav_is_a) else "Dog"
+                else:
+                    picker[m] = ("Fav" if same(team, fav_tag) or same(team, fav)
+                                 else "Dog" if same(team, dog_tag) or same(team, dog) else team)
+        # Where the veto text is missing, vlr.gg's per-map "picked by" tag fills in.
+        for i, g in enumerate(info.get("games") or []):
+            if len(g) < 5 or not g[0] or g[0] in picker:
+                continue
+            t = (g[4] or "").strip().lower()
+            if t and t in ((info.get("g1") or "").lower(), (info.get("g2") or "").lower()):
+                picker[g[0]] = "Fav" if (t == (info.get("g1") or "").lower()) == (a_is_1 == fav_is_a) else "Dog"
+            elif not t and maps and g[0] == maps[-1] and len(maps) == (info.get("bo") or 0):
+                picker[g[0]] = "Decider"
         model = None
         if maps and qa[-60] and rec_a is not None and rec_b is not None:
             p_a = vb.model_prob(qa[-60]["mid"], maps, rec_a, rec_b)
