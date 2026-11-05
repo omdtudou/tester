@@ -1,0 +1,38 @@
+# Posts the latest paper-test report to a GitHub issue once a day (GitHub emails you about it),
+# with a final post on Nov 13. Runs entirely on GitHub, no Claude needed.
+name: daily-summary
+
+on:
+  schedule:
+    - cron: "17 23 * * *"     # daily, about 6:17 PM New York time
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Post the latest report
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LAST_DAY: "2026-11-13"
+        run: |
+          today=$(date -u +%Y-%m-%d)
+          if [[ "$today" > "$LAST_DAY" ]]; then echo "Test is over; nothing to post."; exit 0; fi
+          if [ ! -f data/REPORT.md ]; then echo "No report yet."; exit 0; fi
+          title="Paper test report"
+          if [ "$today" = "$LAST_DAY" ]; then heading="Final report ($today)"; else heading="Update ($today)"; fi
+          { echo "### $heading"; echo; cat data/REPORT.md; echo; \
+            echo "_Live report: https://github.com/${GITHUB_REPOSITORY}/blob/main/data/REPORT.md_"; } > /tmp/post.md
+          num=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" \
+                --json number --jq '.[0].number // empty')
+          if [ -z "$num" ]; then
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body-file /tmp/post.md
+          else
+            gh issue comment "$num" --repo "$GITHUB_REPOSITORY" --body-file /tmp/post.md
+          fi
