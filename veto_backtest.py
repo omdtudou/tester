@@ -187,12 +187,12 @@ def kalshi_matches(markets: List[dict]) -> Tuple[List[dict], Dict[str, int]]:
     return rows, skipped
 
 
-def kalshi_candles(get: Callable, ticker: str, tier: str, t0: datetime) -> List[list]:
+def kalshi_candles(get: Callable, ticker: str, tier: str, t0: datetime, series: str = SERIES) -> List[list]:
     start = int((t0 + timedelta(minutes=CANDLE_WINDOW[0])).timestamp())
     end = int((t0 + timedelta(minutes=CANDLE_WINDOW[1])).timestamp())
     params = {"start_ts": start, "end_ts": end, "period_interval": 1}
     path = (f"/historical/markets/{ticker}/candlesticks" if tier == "historical"
-            else f"/series/{SERIES}/markets/{ticker}/candlesticks")
+            else f"/series/{series}/markets/{ticker}/candlesticks")
     d = get(path, params) or {}
     return [c for c in (compact_candle(x) for x in d.get("candlesticks") or []) if c]
 
@@ -361,7 +361,11 @@ def slim_info(s) -> dict:
             "s1": d.get("score1"), "s2": d.get("score2"),
             "forfeit": bool((d.get("forfeit") or {}).get("forfeited")),
             "veto": [[v.get("veto_type", ""), v.get("map_name", ""), v.get("team", "")] for v in d.get("veto") or []],
-            "games": [[g.get("map_name", ""), g.get("played", True)] for g in d.get("games") or []]}
+            "g1": (d.get("team1") or {}).get("tag") or "", "g2": (d.get("team2") or {}).get("tag") or "",
+            "stage": d.get("stage") or "", "bracket": d.get("bracket") or "", "patch": d.get("patch") or "",
+            # [map, played, team1 rounds, team2 rounds, picked by (tag)]
+            "games": [[g.get("map_name", ""), g.get("played", True), g.get("team1_score"), g.get("team2_score"),
+                       g.get("picked_by") or ""] for g in d.get("games") or []]}
 
 
 def slim_stats(st) -> Dict[str, List[int]]:
@@ -610,7 +614,9 @@ def collect(args, cache: Cache, get: Callable = http_get, vlr=None, log=print) -
             continue
         key = str(hit["id"])
         try:
-            if key not in cache["vlr_info"]:
+            cached = cache["vlr_info"].get(key)
+            # Older cache entries lack per-map scores: fetch those again.
+            if cached is None or "g1" not in cached:
                 cache["vlr_info"][key] = slim_info(vlr.series.info(series_id=hit["id"]))
             info = cache["vlr_info"][key]
             t0 = match_t0(r, info, hit)
