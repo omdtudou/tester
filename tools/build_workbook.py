@@ -403,7 +403,7 @@ def valorant_cols(with_results):
              Col("edge_model", "Map model minus price 10 min before", "Model", 10, PTS,
                  lambda r, L: f'=IF(OR({L["model"]}{r}="",{L["c10"]}{r}=""),"",{L["model"]}{r}-{L["c10"]}{r})')]
     cols += betting_cols()
-    cols += [Col("volume", "Kalshi volume, whole market (contracts) — includes live trading", "Links", 12, "#,##0"),
+    cols += [Col("volume", "Kalshi volume (contracts, incl. live trading)", "Links", 12, "#,##0"),
              Col("vlr", "vlr.gg", "Links", 7),
              Col("ticker", "Kalshi event", "Links", 34)]
     return cols
@@ -424,7 +424,7 @@ def kalshi_cols():
     cols += price_formula_cols()
     cols += [Col("won", "Fav won (1 = yes)", "Result", 7)]
     cols += betting_cols()
-    cols += [Col("volume", "Kalshi volume, whole market (contracts) — includes live trading", "Links", 12, "#,##0"),
+    cols += [Col("volume", "Kalshi volume (contracts, incl. live trading)", "Links", 12, "#,##0"),
              Col("ticker", "Kalshi event", "Links", 34)]
     return cols
 
@@ -463,7 +463,7 @@ def write_stat_row(ws, row, label_cells, sheet, L, last, conds):
     ws.cell(row=row, column=c0 + 2, value=f'=IFERROR({won},"")').number_format = PCT
     ws.cell(row=row, column=c0 + 3, value=f'=IFERROR({col(2)}{row}-{col(1)}{row},"")').number_format = PTS
     ws.cell(row=row, column=c0 + 4,
-            value=f'=IFERROR(1.645*SQRT({col(1)}{row}*(1-{col(1)}{row})/{col(0)}{row}),"")').number_format = PTS
+            value=f'=IFERROR(1.645*SQRT({col(1)}{row}*(1-{col(1)}{row})/{col(0)}{row}),"")').number_format = PCT
     ws.cell(row=row, column=c0 + 5, value=(
         f'=IF({col(0)}{row}<30,"too few",IF(ABS({col(3)}{row})>{col(4)}{row},'
         f'IF({col(3)}{row}>0,"fav under-priced","fav over-priced"),"no clear gap"))'))
@@ -680,7 +680,7 @@ def maps_sheets(wb, maps_rows):
         s.cell(row=row, column=2, value=f"=COUNTIF({rng('map')},{a})")
         s.cell(row=row, column=3, value=f"=COUNTIFS({rng('map')},{a},{rng('picker_won')},\">=0\")")
         s.cell(row=row, column=4, value=f'=IFERROR(AVERAGEIFS({rng("picker_won")},{rng("map")},{a}),"")').number_format = PCT
-        s.cell(row=row, column=5, value=f'=IFERROR(1.645*SQRT(0.25/C{row}),"")').number_format = PTS
+        s.cell(row=row, column=5, value=f'=IFERROR(1.645*SQRT(0.25/C{row}),"")').number_format = PCT
         s.cell(row=row, column=6, value=f'=COUNTIFS({rng("map")},{a},{rng("pick")},"Decider")')
         s.cell(row=row, column=7, value=f'=IFERROR(AVERAGEIFS({rng("fav_won_map")},{rng("map")},{a}),"")').number_format = PCT
         for col, who in ((8, "Fav"), (9, "Dog"), (10, "Decider")):
@@ -691,7 +691,7 @@ def maps_sheets(wb, maps_rows):
     s.cell(row=row, column=2, value=f"=COUNTA({rng('map')})")
     s.cell(row=row, column=3, value=f"=COUNTIF({rng('picker_won')},\">=0\")")
     s.cell(row=row, column=4, value=f'=IFERROR(AVERAGE({rng("picker_won")}),"")').number_format = PCT
-    s.cell(row=row, column=5, value=f'=IFERROR(1.645*SQRT(0.25/C{row}),"")').number_format = PTS
+    s.cell(row=row, column=5, value=f'=IFERROR(1.645*SQRT(0.25/C{row}),"")').number_format = PCT
     s.cell(row=row, column=6, value=f'=COUNTIF({rng("pick")},"Decider")')
     s.cell(row=row, column=7, value=f'=IFERROR(AVERAGE({rng("fav_won_map")}),"")').number_format = PCT
     for col, who in ((8, "Fav"), (9, "Dog"), (10, "Decider")):
@@ -848,6 +848,15 @@ def main(argv=None):
     notes = [("Map-veto edge (Valorant)", "No edge: map records say a little about who wins, but Kalshi's price an "
                                           "hour before already includes it, and betting the gap showed no reliable "
                                           "profit after fees. Full report: data/backtest/VETO_REPORT.md in the repo."),
+             ("Favorite-longshot pattern", "Real across all four games (about 10,000 matches): favorites priced 70% "
+                                           "or more win a few points more often than their price. Bought at the mid "
+                                           "that is about +2–3%, but at the ask after the taker fee it is about 0%. "
+                                           "Could only pay as a maker (resting bids); not tested yet. See By price."),
+             ("Rest days", "Looked good in Valorant (+11% over 117 bets) but lost on CS2 (−10% over 642), LoL (−22% "
+                           "over 207) and Dota 2 (−30% over 86). Luck. Script: tools/rest_test.py."),
+             ("Other ideas", "Late price moves, thin markets, coin flips, overnight matches, team over-performance, "
+                             "recent form, rematches, event tier, best-of-5: none held up from the earlier half of the "
+                             "dates to the later half. Script: tools/edge_search.py, report data/research/."),
              ("Kalshi vs Polymarket arbitrage", "Paper test running until Nov 12; see data/REPORT.md in the repo.")]
     from datetime import datetime
     start_sheet(wb, counts, datetime.now().strftime("%b %d, %Y"), notes)
