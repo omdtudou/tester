@@ -186,9 +186,15 @@ class Matching(unittest.TestCase):
 
     def test_event_level(self):
         self.assertEqual(vb.event_level("Champions Tour 2026: Pacific Stage 2"), "top")
+        self.assertEqual(vb.event_level("VCT 2026: EMEA Stage 2"), "top")
+        self.assertEqual(vb.event_level("VCT 2026: Americas Kickoff"), "top")
         self.assertEqual(vb.event_level("Valorant Masters London 2026"), "top")
+        self.assertEqual(vb.event_level("Esports World Cup 2026"), "top")
+        self.assertEqual(vb.event_level("Esports World Cup 2026: EMEA Qualifier"), "lower")
         self.assertEqual(vb.event_level("VCT 2026: China Threshold"), "lower")
         self.assertEqual(vb.event_level("Game Changers 2026: Championship"), "lower")
+        self.assertEqual(vb.event_group("Challengers 2026: Spain Rising Stage 3"), "Challengers")
+        self.assertEqual(vb.event_group("Valorant Champions 2026"), "International")
 
 
 class Statistics(unittest.TestCase):

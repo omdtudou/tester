@@ -333,14 +333,24 @@ def match_t0(row: dict, info: Optional[dict], hit: dict) -> datetime:
     return parse_iso(row["start"])
 
 
-def event_level(event_name: str) -> str:
+def event_group(event_name: str) -> str:
+    """International (Masters, Champions, EWC), VCT league, Challengers, Game Changers or Other."""
     ev = (event_name or "").lower()
-    lower = ("challengers", "game changers", "ascension", "threshold", "academy", "spike series")
-    if any(x in ev for x in lower):
-        return "lower"
-    if any(x in ev for x in ("champions tour", "masters", "valorant champions")):
-        return "top"
-    return "lower"
+    if "game changers" in ev:
+        return "Game Changers"
+    if "challengers" in ev or "ascension" in ev:
+        return "Challengers"
+    if any(x in ev for x in ("qualifier", "threshold", "academy", "spike series", "evolution series")):
+        return "Other"
+    if "masters" in ev or "valorant champions" in ev or "esports world cup" in ev:
+        return "International"
+    if ev.startswith("vct ") or "champions tour" in ev:
+        return "VCT league"
+    return "Other"
+
+
+def event_level(event_name: str) -> str:
+    return "top" if event_group(event_name) in ("International", "VCT league") else "lower"
 
 
 def slim_result(m) -> Optional[dict]:

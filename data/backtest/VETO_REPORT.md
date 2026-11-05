@@ -1,6 +1,6 @@
 # Map-veto backtest (Valorant, Kalshi)
 
-Generated 2026-11-05T05:58:04Z. Public data only; nothing was traded.
+Generated 2026-11-05T06:07:43Z. Public data only; nothing was traded.
 
 ## Verdict
 
@@ -12,7 +12,7 @@ No edge found: map records do say a little about who wins, but Kalshi's price an
 - used (pre price, veto, map records): 1174
 - with a post-veto price: 1105
 - dates: 2026-01-15 to 2026-11-01
-- top-tier matches (VCT leagues, Masters, Champions): 81
+- top-tier matches (VCT leagues, Masters, Champions): 604
 - left out: not found on vlr.gg 268; no veto on vlr.gg 176; no Kalshi price an hour before 37; not settled yes/no 15; no date in ticker 8; not two markets 1
 - start time check, vlr.gg minus Kalshi: median +0 min (middle half +0 to +0)
 - examples not found on vlr.gg: 2026-11-01T13:00 Team relaxcis vs Team Samuraj; 2026-10-31T13:30 Team relaxcis vs Team Samuraj; 2026-10-31T11:10 Team GPK vs Team Redgar; 2026-10-12T16:00 BBL Esports vs Team NVus; 2026-10-09T19:00 Team NVus vs Pcific Esports; 2026-10-09T16:00 BBL Esports vs Fire Flux Esports; 2026-10-08T19:00 BBL Esports vs Pcific Esports; 2026-10-08T16:00 Fire Flux Esports vs Team NVus
@@ -49,8 +49,8 @@ Assumes each bet fills at the quoted price. Small markets often have only a few 
 
 | Slice | Matches | Leftover weight (±) | Bets at 5¢ | Avg return |
 |---|---|---|---|---|
-| Top tier (VCT leagues, Masters, Champions) | 76 | 0.08 (± 0.39) | 45 | -19.8% |
-| Everything else | 1029 | 0.08 (± 0.11) | 539 | -0.8% |
+| Top tier (VCT leagues, Masters, Champions) | 582 | 0.07 (± 0.16) | 312 | +2.6% |
+| Everything else | 523 | 0.08 (± 0.16) | 272 | -7.8% |
 | Tighter markets (spread ≤ 2¢ an hour before) | 769 | 0.02 (± 0.14) | 414 | -1.7% |
 | Wider markets (spread > 2¢ an hour before) | 336 | 0.18 (± 0.19) | 170 | -3.6% |
 
