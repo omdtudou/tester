@@ -1,6 +1,7 @@
 # Runs arbscan's esports paper test on GitHub's servers, so your computer can stay off.
-# Every 10 minutes it watches Kalshi + Polymarket US for 7 minutes, logs every arb, and
-# checks 20 seconds later whether you could still have filled it. It never places orders.
+# Every 10 minutes it watches Kalshi + Polymarket US for 7 minutes, logs every arb, and checks
+# 2 seconds later (bot speed) and 20 seconds later (by hand) whether it could still be filled.
+# It never places orders.
 #
 # Results: data/REPORT.md (plain-English summary) and data/paper.jsonl (raw log).
 # Keep the repository PUBLIC: GitHub Actions minutes are free and unlimited for public
@@ -45,7 +46,7 @@ jobs:
 
       - name: Watch for 7 minutes (read-only, no orders)
         if: steps.window.outputs.over != 'true'
-        run: python arbscan.py --paper --minutes 7 --watch 45 --recheck 20 --paper-log data/paper.jsonl
+        run: python arbscan.py --paper --minutes 7 --watch 45 --recheck 2,20 --paper-log data/paper.jsonl
 
       - name: Update the report
         if: steps.window.outputs.over != 'true'

@@ -110,8 +110,9 @@ slip carries this warning.
 
 This measures, without placing a single order:
 - how often esports arbs show up
-- whether each one is still there **20 seconds later**, roughly the time it takes you to act
-- what you'd have made if you'd placed every slip then
+- whether each one is still there **2 seconds later** (how fast a trading bot would act) and
+  **20 seconds later** (how fast you would)
+- what each speed would have made
 
 ### On GitHub (your computer can stay off)
 
@@ -143,8 +144,8 @@ python arbscan.py --report paper.jsonl       # summary, any time
 ```
 - Watched for about 160.2 hours (9,870 scans, one every ~45s).
 - Arbs: 14 appearances across 9 matches (CS2 8, Valorant 4, League of Legends 2).
-- Checked again 20s later (your reaction time): fully fillable 5, partly 3, gone 6.
-- Profit if you'd placed every one 20s after it appeared: $11.40, about $1.71 per day watched.
+- After 2s (bot speed): fully fillable 11, partly 2, gone 1; profit if placed then $19.80, about $2.97 per day watched.
+- After 20s (by hand): fully fillable 5, partly 3, gone 6; profit if placed then $11.40, about $1.71 per day watched.
 **Verdict:** Small but real ...
 ```
 
@@ -214,7 +215,7 @@ carries, e.g. `--bet-on kalshi,draftkings`.
 | `--json`, `--log FILE`, `--beep` | | JSON output, CSV log, terminal bell |
 | `--save FILE`, `--from-file FILE` | | record raw responses and replay them later |
 | `--paper` | off | paper-trade esports: log arbs and recheck each one |
-| `--recheck` | `20` | seconds before the recheck (paper) |
+| `--recheck` | `2,20` | seconds before each recheck: bot speed, human speed (paper) |
 | `--minutes` / `--hours` | | stop a paper run after this long |
 | `--paper-log FILE` | `paper.jsonl` | where the paper log goes |
 | `--report FILE` | | summarise a paper log |

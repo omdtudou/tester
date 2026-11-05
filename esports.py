@@ -846,6 +846,12 @@ def _append(path: str, row: dict) -> None:
         f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
+def recheck_delays(spec) -> List[float]:
+    """'2,20' -> [2.0, 20.0]. 2s is roughly how fast a bot reacts; 20s is a person."""
+    vals = sorted({float(x) for x in str(spec).split(",") if x.strip()})
+    return [v for v in vals if v > 0]
+
+
 def paper(args, fees: Dict[str, float], games: List[str], series, aliases, http_factory=None) -> int:
     """Scan on a timer, log every arb, and recheck each one after a delay. Never trades."""
     http_factory = http_factory or Http
@@ -872,15 +878,17 @@ def paper(args, fees: Dict[str, float], games: List[str], series, aliases, http_
         _append(args.paper_log, row)
         for a in arbs:
             _append(args.paper_log, dict(type="seen", t=stamp, op=a.op_id, **a.to_dict()))
-        if arbs and args.recheck > 0:
-            time.sleep(args.recheck)
+        waited = 0.0
+        for delay in (recheck_delays(args.recheck) if arbs else []):
+            time.sleep(max(0.0, delay - waited))
+            waited = delay
             for a in arbs:
                 try:
                     res = recheck(http, a, fees, args.budget)
                 except VenueError as e:
                     res = {"error": str(e), "fillable_n": 0, "profit_if_placed": None, "still_arb_pct": None}
                 _append(args.paper_log, dict(type="recheck", t=datetime.now(timezone.utc).isoformat(), op=a.op_id,
-                                             delay_s=args.recheck, planned_n=a.legs[0].contracts,
+                                             delay_s=delay, planned_n=a.legs[0].contracts,
                                              planned_profit=a.profit, **res))
         scans += 1
         status = f"error: {row['error']}" if "error" in row else \
@@ -942,25 +950,34 @@ def report(path: str) -> str:
             rechecks[r["op"]].append(r)
 
     # One "appearance" = an arb seen in consecutive scans. You'd only place it once per appearance,
-    # so profit counts the first recheck of each appearance.
-    appearances = []      # (game, lifetime_s, first recheck or None)
+    # so profit counts the first recheck of each appearance, separately for each recheck delay.
+    delays = sorted({float(r.get("delay_s", 0)) for rs in rechecks.values() for r in rs})
+    appearances = []      # (game, lifetime_s, {delay: first recheck})
     for op, ts in sightings.items():
         checks = sorted(rechecks.get(op, []), key=lambda r: r["t"])
         for start, end in _episodes(ts, max_gap):
-            first = next((c for c in checks
-                          if start <= parse_iso(c["t"]) <= end + timedelta(seconds=max_gap)), None)
-            appearances.append((game_of[op], (end - start).total_seconds(), first))
+            firsts = {}
+            for c in checks:
+                d = float(c.get("delay_s", 0))
+                if d not in firsts and start <= parse_iso(c["t"]) <= end + timedelta(seconds=max_gap + d):
+                    firsts[d] = c
+            appearances.append((game_of[op], (end - start).total_seconds(), firsts))
 
-    checked = [c for _, _, c in appearances if c is not None]
-    full = sum(1 for c in checked if c.get("fillable_n", 0) >= c.get("planned_n", 1))
-    part = sum(1 for c in checked if 0 < c.get("fillable_n", 0) < c.get("planned_n", 1))
-    gone = len(checked) - full - part
-    realised = sum((c.get("profit_if_placed") or 0.0) for c in checked)
     enough = hours >= 6
-    per_day = realised / (watched / 86400) if enough else None
+    by_delay = {}
+    for d in delays:
+        cs = [f[d] for _, _, f in appearances if d in f]
+        full = sum(1 for c in cs if c.get("fillable_n", 0) >= c.get("planned_n", 1))
+        part = sum(1 for c in cs if 0 < c.get("fillable_n", 0) < c.get("planned_n", 1))
+        realised = sum((c.get("profit_if_placed") or 0.0) for c in cs)
+        by_delay[d] = {"n": len(cs), "full": full, "part": part, "gone": len(cs) - full - part,
+                       "realised": realised, "per_day": realised / (watched / 86400) if enough else None}
     games = defaultdict(int)
     for g, _, _ in appearances:
         games[g] += 1
+
+    def who(d: float) -> str:
+        return "bot speed" if d <= 5 else "by hand"
 
     out = [f"# Paper test: {times[0]:%b %d %H:%M} to {times[-1]:%b %d %H:%M} UTC", "",
            f"- Watched for about **{hours:.1f} hours** ({len(scans)} scans, one every ~{typical:.0f}s"
@@ -971,13 +988,11 @@ def report(path: str) -> str:
                    f"Polymarket US {sum(r.get('pmus_markets', 0) for r in ok) / len(ok):.0f}.")
     out.append(f"- Arbs: **{len(appearances)}** appearances across **{len(sightings)}** matches"
                + (f" ({', '.join(f'{g} {n}' for g, n in sorted(games.items()))})" if games else "") + ".")
-    if checked:
-        delay = checked[0].get("delay_s", "?")
-        out.append(f"- Checked again {delay:g}s later (your reaction time): fully fillable **{full}**, "
-                   f"partly **{part}**, gone **{gone}**.")
-        line = f"- Profit if you'd placed every one {delay:g}s after it appeared: **${realised:,.2f}**"
-        line += f", about **${per_day:,.2f} per day watched**." if enough else \
-            " (too little data to estimate a daily figure)."
+    for d, st in by_delay.items():
+        line = (f"- After {d:g}s ({who(d)}): fully fillable **{st['full']}**, partly **{st['part']}**, "
+                f"gone **{st['gone']}**; profit if placed then **${st['realised']:,.2f}**")
+        line += f", about **${st['per_day']:,.2f} per day watched**." if enough else \
+            " (too little data for a daily figure)."
         out.append(line)
     if appearances:
         lt = sorted(l for _, l, _ in appearances)
@@ -999,20 +1014,27 @@ def report(path: str) -> str:
                    f"week that includes a big tournament.")
     elif not appearances:
         verdict = f"No arbs in {hours:.0f} hours of watching. On this evidence it isn't worth running live."
-    elif per_day < 1:
-        verdict = (f"Arbs exist but are tiny: about ${per_day:.2f} a day after fees, even if you placed every "
-                   f"one in time. Not worth your time at this budget.")
-    elif per_day < 10:
-        verdict = (f"Small but real: about ${per_day:.2f} a day, if you catch each one within "
-                   f"{checked[0].get('delay_s', 20):g}s. Only worth it if you'd be watching anyway.")
     else:
-        verdict = (f"Promising: about ${per_day:.2f} a day if you catch them in time. Watch for longer before "
-                   f"trusting it, and start with small stakes.")
+        d0 = delays[0] if delays else 0.0
+        per_day = by_delay[d0]["per_day"] if delays else 0.0
+        speed = f"if a bot places each one within {d0:g}s" if d0 <= 5 else f"if you catch each one within {d0:g}s"
+        if per_day < 1:
+            verdict = (f"Arbs exist but are tiny: about ${per_day:.2f} a day after fees, {speed}. "
+                       f"Not worth automating at this budget.")
+        elif per_day < 10:
+            verdict = (f"Small but real: about ${per_day:.2f} a day, {speed}. Probably not worth the risk of "
+                       f"automating two-venue trades for this.")
+        else:
+            verdict = (f"Promising: about ${per_day:.2f} a day, {speed}. Worth building the automated version "
+                       f"carefully and starting with small stakes.")
+        if len(delays) > 1 and by_delay[delays[-1]]["per_day"] is not None:
+            verdict += (f" By hand ({delays[-1]:g}s) it would be about "
+                        f"${by_delay[delays[-1]]['per_day']:.2f} a day.")
     out.append(f"**Verdict:** {verdict}")
     out.append("")
-    out.append("Assumes both limit orders fill together at the slip prices. In practice you place one leg "
-               "after the other, so real results will be a bit worse. Arbs that appear between scans "
-               "aren't counted.")
+    out.append("Assumes both limit orders fill together at the slip prices. In practice one leg goes in "
+               "before the other, so real results will be a bit worse. Arbs that appear and vanish between "
+               "scans (every ~45s) aren't counted, so a fast bot could catch some this test misses.")
     return "\n".join(out)
 
 

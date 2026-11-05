@@ -344,6 +344,24 @@ def synthetic_log(path, hours, arb_every=None, profit=1.5, fill="full", error=No
                                         "fillable_n": n, "profit_if_placed": profit if n else None}) + "\n")
 
 
+class TwoSpeeds(unittest.TestCase):
+    def test_rechecks_at_bot_and_human_speed(self):
+        self.assertEqual(E.recheck_delays("20, 2"), [2.0, 20.0])
+        with tempfile.TemporaryDirectory() as d:
+            log = os.path.join(d, "paper.jsonl")
+            args = arbscan.parse_args(["--paper", "--demo", "--watch", "1", "--recheck", "2,20", "--paper-log", log])
+            args.max_scans = 1
+            with mock.patch.object(E.time, "sleep") as slept, redirect_stdout(io.StringIO()):
+                E.run(args, FEES)
+            self.assertEqual([c.args[0] for c in slept.call_args_list][:2], [2.0, 18.0])
+            with open(log, encoding="utf-8") as f:
+                delays = [json.loads(line)["delay_s"] for line in f if '"recheck"' in line]
+            self.assertEqual(sorted(delays), [2.0, 2.0, 20.0, 20.0])
+            report = E.report(log)
+        self.assertIn("After 2s (bot speed)", report)
+        self.assertIn("After 20s (by hand)", report)
+
+
 class Report(unittest.TestCase):
     def report(self, **kw):
         with tempfile.TemporaryDirectory() as d:

@@ -707,8 +707,9 @@ def parse_args(argv=None) -> argparse.Namespace:
                    help="extra Polymarket US market-list pages to search, 100 each (default 5)")
     pt = p.add_argument_group("paper trading (esports): measure what you'd really have made, no orders")
     pt.add_argument("--paper", action="store_true", help="scan on a timer, log arbs, recheck each one later")
-    pt.add_argument("--recheck", type=float, default=20.0,
-                    help="seconds to wait before checking whether an arb was still fillable (default 20)")
+    pt.add_argument("--recheck", default="2,20",
+                    help="seconds after which to check an arb is still fillable; comma-separated "
+                         "(default 2,20: bot speed and human speed)")
     pt.add_argument("--paper-log", default="paper.jsonl", help="where to write the log (default paper.jsonl)")
     pt.add_argument("--minutes", type=float, help="stop after this many minutes")
     pt.add_argument("--hours", type=float, help="stop after this many hours")
