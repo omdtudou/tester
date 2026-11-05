@@ -16,7 +16,8 @@ class Times(unittest.TestCase):
         self.assertEqual(vb.kalshi_start("KXVALORANTGAME-26SEP290500G2PR"), utc(2026, 9, 29, 9, 0))
         # Clocks went back on 1 Nov 2026, so 13:00 New York is 18:00 UTC.
         self.assertEqual(vb.kalshi_start("KXVALORANTGAME-26NOV011300KRM8GC"), utc(2026, 11, 1, 18, 0))
-        self.assertIsNone(vb.kalshi_start("KXVALORANTGAME-26SEP29G2PR"))
+        self.assertIsNone(vb.kalshi_start("KXVALORANTGAME-26APR02FUTGM"))
+        self.assertEqual(vb.kalshi_day("KXVALORANTGAME-26APR02FUTGM"), utc(2026, 4, 2, 16, 0))
 
 
 class SeriesMaths(unittest.TestCase):
@@ -112,6 +113,7 @@ class KalshiGrouping(unittest.TestCase):
         self.assertEqual((r["team_a"], r["team_b"], r["a_won"]), ("G2 Esports", "Paper Rex", False))
         self.assertEqual(r["start"], "2026-09-29T09:00:00Z")
         self.assertEqual(skipped, {"not settled yes/no": 1})
+        self.assertEqual(r["kind"], "time")
 
     def test_markets_from_both_tiers(self):
         def get(path, params):
@@ -147,6 +149,41 @@ class Matching(unittest.TestCase):
         self.assertIsNone(vb.find_vlr(row, self.results)[0])
         self.assertFalse(vb.same_team("G2 Esports", "G2 Gozen", "G2G"))
         self.assertTrue(vb.same_team("KRÜ Esports", "KRU Esports", "KRU"))
+        self.assertTrue(vb.same_team("TEC Esports", "Titan Esports Club", "TEC"))
+
+    def test_sister_team_names(self):
+        results = [{"id": 7, "dt": "2026-10-30T21:40:00Z", "ev": "", "n1": "KRÜ BLAZE", "g1": "KRUB", "i1": 1,
+                    "n2": "MIBR GC", "g2": "MIBR.GC", "i2": 2},
+                   {"id": 8, "dt": "2026-10-23T09:00:00Z", "ev": "", "n1": "CGN Esports", "g1": "CGN", "i1": 3,
+                    "n2": "Natus Vincere Junior", "g2": "NVJ", "i2": 4}]
+        hit, a_is_1 = vb.find_vlr({"start": "2026-10-30T21:00:00Z", "team_a": "KRÜ Blaze",
+                                   "team_b": "MIBR Female"}, results)
+        self.assertEqual((hit["id"], a_is_1), (7, True))
+        hit, a_is_1 = vb.find_vlr({"start": "2026-10-23T08:00:00Z", "team_a": "CGN Esports",
+                                   "team_b": "Natus Vincere"}, results)
+        self.assertEqual(hit["id"], 8)
+        results.append({"id": 10, "dt": "2026-10-22T18:00:00Z", "ev": "", "n1": "FENNEL GC", "g1": "FLGC", "i1": 5,
+                        "n2": "MIBR GC", "g2": "MIBR.GC", "i2": 2})
+        hit, a_is_1 = vb.find_vlr({"start": "2026-10-22T18:00:00Z", "team_a": "FENNEL Female",
+                                   "team_b": "MIBR Female"}, results)
+        self.assertEqual((hit["id"], a_is_1), (10, True))
+        # The loose rule only applies close in time.
+        self.assertIsNone(vb.find_vlr({"start": "2026-10-31T09:00:00Z", "team_a": "KRÜ Blaze",
+                                       "team_b": "MIBR Female"}, results)[0])
+
+    def test_date_only_ticker_uses_vlr_time(self):
+        row = {"start": "2026-04-02T16:00:00Z", "kind": "date", "team_a": "CGN Esports", "team_b": "Natus Vincere Junior"}
+        res = [{"id": 9, "dt": "2026-04-02T23:30:00Z", "ev": "", "n1": "CGN Esports", "g1": "CGN", "i1": 3,
+                "n2": "Natus Vincere Junior", "g2": "NVJ", "i2": 4}]
+        hit, _ = vb.find_vlr(row, res)
+        self.assertEqual(vb.match_t0(row, {"dt": "2026-04-02T23:35:00Z"}, hit), utc(2026, 4, 2, 23, 35))
+        self.assertEqual(vb.match_t0(dict(row, kind="time"), None, hit), utc(2026, 4, 2, 16, 0))
+
+    def test_event_level(self):
+        self.assertEqual(vb.event_level("Champions Tour 2026: Pacific Stage 2"), "top")
+        self.assertEqual(vb.event_level("Valorant Masters London 2026"), "top")
+        self.assertEqual(vb.event_level("VCT 2026: China Threshold"), "lower")
+        self.assertEqual(vb.event_level("Game Changers 2026: Championship"), "lower")
 
 
 class Statistics(unittest.TestCase):
@@ -235,7 +272,8 @@ class EndToEnd(unittest.TestCase):
         b, se = res["info"]
         self.assertGreater(b / se, 2)
         self.assertIn("already absorbed", text)
-        self.assertIn("+5 min", text.replace("vlr.gg minus Kalshi: median +5 min", "+5 min"))
+        self.assertIn("vlr.gg minus Kalshi: median +5 min", text)
+        self.assertIn("Big matches versus small ones", text)
 
     def test_market_ignores_maps_shows_edge(self):
         rows, funnel, res, text = self.run_case(n=600, market_absorbs=False)

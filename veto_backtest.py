@@ -24,6 +24,8 @@ Then it asks:
 from __future__ import annotations
 
 import argparse
+import bisect
+import functools
 import json
 import math
 import os
@@ -37,7 +39,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Callable, Dict, List, Optional, Tuple
 from zoneinfo import ZoneInfo
 
-from esports import team_key
+from esports import TEAM_FILLER, team_key
 
 ET = ZoneInfo("America/New_York")
 KALSHI = "https://api.elections.kalshi.com/trade-api/v2"
@@ -67,6 +69,20 @@ def kalshi_start(event_ticker: str) -> Optional[datetime]:
     except ValueError:
         return None
     return local.astimezone(timezone.utc)
+
+
+def kalshi_day(event_ticker: str) -> Optional[datetime]:
+    """Older tickers carry only a date (KXVALORANTGAME-26APR02FUTGM): noon New York that day."""
+    import re
+    suffix = event_ticker.split("-", 1)[1] if "-" in event_ticker else ""
+    m = re.match(r"(\d{2})([A-Z]{3})(\d{2})", suffix)
+    if not m:
+        return None
+    try:
+        day = datetime.strptime(f"{m.group(1)}{m.group(2).title()}{m.group(3)}", "%y%b%d")
+    except ValueError:
+        return None
+    return day.replace(hour=12, tzinfo=ET).astimezone(timezone.utc)
 
 
 def iso(dt: Optional[datetime]) -> Optional[str]:
@@ -150,19 +166,21 @@ def kalshi_matches(markets: List[dict]) -> Tuple[List[dict], Dict[str, int]]:
     rows, skipped = [], {}
     for ev, ms in by_event.items():
         ms = sorted(ms, key=lambda m: m["ticker"])
-        start = kalshi_start(ev)
+        start, kind = kalshi_start(ev), "time"
+        if start is None:
+            start, kind = kalshi_day(ev), "date"
         why = None
         if len(ms) != 2:
             why = "not two markets"
         elif sorted(m["result"] for m in ms) != ["no", "yes"]:
             why = "not settled yes/no"
         elif start is None:
-            why = "no start time in ticker"
+            why = "no date in ticker"
         if why:
             skipped[why] = skipped.get(why, 0) + 1
             continue
         a, b = ms
-        rows.append({"event": ev, "start": iso(start), "team_a": a["team"], "team_b": b["team"],
+        rows.append({"event": ev, "start": iso(start), "kind": kind, "team_a": a["team"], "team_b": b["team"],
                      "ticker_a": a["ticker"], "a_won": a["result"] == "yes", "tier": a["tier"],
                      "volume": a["volume"] + b["volume"]})
     rows.sort(key=lambda r: r["start"], reverse=True)
@@ -229,32 +247,100 @@ def quote_at(candles: List[list], when: datetime) -> Optional[dict]:
 
 # --------------------------------------------------------------------------- vlr.gg
 
+@functools.lru_cache(maxsize=None)
+def _key(name: str) -> str:
+    return team_key(name)
+
+
 def same_team(kalshi_name: str, vlr_name: str, vlr_tag: str = "", aliases: Optional[Dict] = None) -> bool:
-    k = team_key(kalshi_name, aliases)
+    key = (lambda n: team_key(n, aliases)) if aliases else _key
+    k = key(kalshi_name)
     kc = k.replace(" ", "")
-    for v in (team_key(vlr_name, aliases), team_key(vlr_tag or "", aliases)):
+    for v in (key(vlr_name), key(vlr_tag or "")):
         if v and (v == k or v.replace(" ", "") == kc):
             return True
     return False
 
 
-def find_vlr(row: dict, results: List[dict], aliases: Optional[Dict] = None) -> Tuple[Optional[dict], bool]:
-    """The vlr.gg result for a Kalshi match: both teams the same, start within 18 h.
-    Returns (match, team_a_is_vlr_team1)."""
+@functools.lru_cache(maxsize=None)
+def first_word(name: str) -> str:
+    """First real word of a name: "MIBR Female" -> "mibr", "Team Liquid Brazil" -> "liquid"."""
+    import unicodedata
+    import re
+    s = unicodedata.normalize("NFKD", name or "").encode("ascii", "ignore").decode().lower()
+    words = [w for w in re.sub(r"[^a-z0-9]+", " ", s).split() if w not in TEAM_FILLER]
+    return words[0] if words else ""
+
+
+class ResultIndex:
+    """vlr.gg results sorted by time, for quick lookups by date."""
+
+    def __init__(self, results: List[dict]):
+        pairs = sorted(((parse_iso(r["dt"]), r) for r in results if parse_iso(r.get("dt"))), key=lambda p: p[0])
+        self.ts = [p[0].timestamp() for p in pairs]
+        self.rows = [p[1] for p in pairs]
+
+    def near(self, ts: float, window: float):
+        i = bisect.bisect_left(self.ts, ts - window)
+        while i < len(self.ts) and self.ts[i] <= ts + window:
+            yield self.rows[i], self.ts[i]
+            i += 1
+
+
+def find_vlr(row: dict, results, aliases: Optional[Dict] = None) -> Tuple[Optional[dict], bool]:
+    """The vlr.gg result for a Kalshi match. Returns (match, team_a_is_vlr_team1).
+
+    Both teams the same name, start within 18 h (36 h when Kalshi gives only the
+    date). Failing that, a looser rule for renamed sister teams ("MIBR Female" on
+    Kalshi, "MIBR GC" on vlr.gg): within 4 h, each team either the same name or
+    sharing its first word, and only one result fitting.
+    """
     t0 = parse_iso(row["start"])
+    window = (36 if row.get("kind") == "date" else MATCH_WINDOW_H) * 3600
     best, best_gap, flip = None, None, False
-    for r in results:
-        dt = parse_iso(r["dt"])
-        if dt is None or abs((dt - t0).total_seconds()) > MATCH_WINDOW_H * 3600:
+    loose = []
+    index = results if isinstance(results, ResultIndex) else ResultIndex(results)
+    for r, ts in index.near(t0.timestamp(), window):
+        gap = abs(ts - t0.timestamp())
+        if gap > window:
             continue
-        straight = same_team(row["team_a"], r["n1"], r["g1"], aliases) and same_team(row["team_b"], r["n2"], r["g2"], aliases)
-        crossed = same_team(row["team_a"], r["n2"], r["g2"], aliases) and same_team(row["team_b"], r["n1"], r["g1"], aliases)
-        if not (straight or crossed):
+        a1, b2 = same_team(row["team_a"], r["n1"], r["g1"], aliases), same_team(row["team_b"], r["n2"], r["g2"], aliases)
+        a2, b1 = same_team(row["team_a"], r["n2"], r["g2"], aliases), same_team(row["team_b"], r["n1"], r["g1"], aliases)
+        if (a1 and b2) or (a2 and b1):
+            if best_gap is None or gap < best_gap:
+                best, best_gap, flip = r, gap, a1 and b2
             continue
-        gap = abs((dt - t0).total_seconds())
-        if best_gap is None or gap < best_gap:
-            best, best_gap, flip = r, gap, straight
-    return best, flip
+        if gap > (window if row.get("kind") == "date" else 4 * 3600):
+            continue
+        fa, fb = first_word(row["team_a"]), first_word(row["team_b"])
+        f1, f2 = first_word(r["n1"]), first_word(r["n2"])
+        ok = lambda x, y: len(x) >= 3 and x == y  # noqa: E731
+        straight = (a1 or ok(fa, f1)) and (b2 or ok(fb, f2))
+        crossed = (a2 or ok(fa, f2)) and (b1 or ok(fb, f1))
+        if straight != crossed:
+            loose.append((r, straight))
+    if best is not None:
+        return best, flip
+    if len(loose) == 1:
+        return loose[0]
+    return None, False
+
+
+def match_t0(row: dict, info: Optional[dict], hit: dict) -> datetime:
+    """Scheduled start: Kalshi's ticker time, or vlr.gg's when Kalshi gives only a date."""
+    if row.get("kind") == "date":
+        return parse_iso((info or {}).get("dt") or hit["dt"]) or parse_iso(row["start"])
+    return parse_iso(row["start"])
+
+
+def event_level(event_name: str) -> str:
+    ev = (event_name or "").lower()
+    lower = ("challengers", "game changers", "ascension", "threshold", "academy", "spike series")
+    if any(x in ev for x in lower):
+        return "lower"
+    if any(x in ev for x in ("champions tour", "masters", "valorant champions")):
+        return "top"
+    return "lower"
 
 
 def slim_result(m) -> Optional[dict]:
@@ -508,8 +594,8 @@ def collect(args, cache: Cache, get: Callable = http_get, vlr=None, log=print) -
     cache["vlr_results"]["rows"] = sorted(have.values(), key=lambda r: r["dt"], reverse=True)
     cache["vlr_results"]["covered_to"] = iso(covered_to)
     cache.save()
-    results = cache["vlr_results"]["rows"]
-    log(f"vlr results: {len(results)} matches cached, back to {iso(covered_to)}")
+    results = ResultIndex(cache["vlr_results"]["rows"])
+    log(f"vlr results: {len(results.rows)} matches cached, back to {iso(covered_to)}")
 
     aliases = load_alias_file(args.aliases)
     done = 0
@@ -525,7 +611,7 @@ def collect(args, cache: Cache, get: Callable = http_get, vlr=None, log=print) -
             if key not in cache["vlr_info"]:
                 cache["vlr_info"][key] = slim_info(vlr.series.info(series_id=hit["id"]))
             info = cache["vlr_info"][key]
-            t0 = parse_iso(r["start"])
+            t0 = match_t0(r, info, hit)
             end = (t0 - timedelta(days=1)).date()
             for tid in (info.get("t1"), info.get("t2")):
                 skey = f"{tid}|{end.isoformat()}"
@@ -559,7 +645,7 @@ def build_rows(cache: Cache, since: Optional[str] = None, aliases: Optional[Dict
     if since:
         lo = parse_iso(since + "T00:00:00Z")
         rows = [r for r in rows if parse_iso(r["start"]) >= lo]
-    results = cache["vlr_results"].get("rows", [])
+    results = ResultIndex(cache["vlr_results"].get("rows", []))
     funnel = {"kalshi matches": len(rows)}
     reasons: Dict[str, int] = dict(skipped)
     out, offsets_min, unmatched = [], [], []
@@ -585,9 +671,9 @@ def build_rows(cache: Cache, since: Optional[str] = None, aliases: Optional[Dict
         if not maps:
             drop("no veto on vlr.gg")
             continue
-        t0 = parse_iso(r["start"])
+        t0 = match_t0(r, info, hit)
         vdt = parse_iso(info.get("dt") or hit["dt"])
-        if vdt:
+        if vdt and r.get("kind") != "date":
             offsets_min.append((vdt - t0).total_seconds() / 60)
         end = (t0 - timedelta(days=1)).date().isoformat()
         tid_a, tid_b = (info["t1"], info["t2"]) if a_is_1 else (info["t2"], info["t1"])
@@ -606,8 +692,7 @@ def build_rows(cache: Cache, since: Optional[str] = None, aliases: Optional[Dict
             continue
         row = dict(r, vlr_id=hit["id"], maps=maps, y=1 if r["a_won"] else 0, pre=pre["mid"],
                    maps_a=sum(w + l for w, l in rec_a.values()), maps_b=sum(w + l for w, l in rec_b.values()),
-                   vct="champions tour" in (info.get("event") or hit.get("ev") or "").lower()
-                   or "vct" in (info.get("event") or hit.get("ev") or "").lower(),
+                   level=event_level(info.get("event") or hit.get("ev") or ""),
                    event_name=info.get("event") or hit.get("ev") or "")
         row["model"] = model_prob(pre["mid"], maps, rec_a, rec_b)
         for m in POST_SENSITIVITY:
@@ -654,6 +739,24 @@ def analyse(rows: List[dict]) -> dict:
         rets = [b["ret"] for b in bets]
         res["bets"][thr] = (len(bets), sum(b["won"] for b in bets), sum(rets) / len(rets) if rets else None,
                             bootstrap_mean_ci(rets))
+    res["slices"] = {}
+    for name, keep in (("Top tier (VCT leagues, Masters, Champions)", lambda r: r["level"] == "top"),
+                       ("Everything else", lambda r: r["level"] != "top"),
+                       ("Busier markets (top half by volume)", None),
+                       ("Quieter markets (bottom half by volume)", None)):
+        if keep is None:
+            vols = sorted(r["volume"] for r in both)
+            cut = vols[len(vols) // 2]
+            keep = (lambda r, c=cut: r["volume"] >= c) if name.startswith("Busier") else (lambda r, c=cut: r["volume"] < c)
+        sub = [r for r in both if keep(r)]
+        if len(sub) < 20:
+            res["slices"][name] = (len(sub), None, None, 0, None)
+            continue
+        b, se = fit_offset_logit([r["y"] for r in sub], [logit(r["post"]) for r in sub],
+                                 [logit(r["model"]) - logit(r["post"]) for r in sub])
+        bets = simulate_bets(sub, 0.05)
+        rets = [x["ret"] for x in bets]
+        res["slices"][name] = (len(sub), b, se, len(bets), sum(rets) / len(rets) if rets else None)
     res["sens"] = {}
     for m in POST_SENSITIVITY:
         sub = [r for r in rows if r.get(f"post{m}_q")]
@@ -702,7 +805,7 @@ def render(rows, funnel, reasons, offsets, unmatched, res) -> str:
         L.append(f"- {k}: {v}")
     if rows:
         L.append(f"- dates: {min(r['start'] for r in rows)[:10]} to {max(r['start'] for r in rows)[:10]}")
-        L.append(f"- VCT (top tier) matches: {sum(1 for r in rows if r['vct'])}")
+        L.append(f"- top-tier matches (VCT leagues, Masters, Champions): {sum(1 for r in rows if r['level'] == 'top')}")
     if reasons:
         L.append("- left out: " + "; ".join(f"{k} {v}" for k, v in sorted(reasons.items(), key=lambda kv: -kv[1])))
     if offsets:
@@ -752,6 +855,15 @@ def render(rows, funnel, reasons, offsets, unmatched, res) -> str:
     L.append("Assumes each bet fills at the quoted price. Small markets often have only a few dollars there, "
              "so real results would be worse for anything but small bets.")
     L.append("")
+    if res.get("slices"):
+        L.append("## Big matches versus small ones")
+        L.append("")
+        L.append("| Slice | Matches | Leftover weight (±) | Bets at 5¢ | Avg return |")
+        L.append("|---|---|---|---|---|")
+        for name, (ns, b, se, nb, roi) in res["slices"].items():
+            w = f"{b:.2f} (± {se:.2f})" if b is not None else "too few"
+            L.append(f"| {name} | {ns} | {w} | {nb} | {_pct(roi) if roi is not None else '–'} |")
+        L.append("")
     if res.get("sens"):
         L.append("## Sensitivity to the post checkpoint")
         L.append("")

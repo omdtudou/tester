@@ -40,7 +40,7 @@ jobs:
           BUDGET: ${{ inputs.budget_minutes }}
         run: |
           python veto_backtest.py --collect --report ${SINCE:+--since "$SINCE"} \
-            --max-matches "${MAX:-0}" --budget-minutes "${BUDGET:-80}" --out data/backtest/VETO_REPORT.md
+            --max-matches "${MAX:-0}" --budget-minutes "${BUDGET:-80}" --vlr-rps 3 --out data/backtest/VETO_REPORT.md
       - name: Save cache and report
         if: always()
         run: |
