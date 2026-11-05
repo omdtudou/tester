@@ -29,6 +29,14 @@ jobs:
         run: pip install -q vlrdevapi
       - name: Valorant per-map scores (refetches older cache entries)
         run: python veto_backtest.py --collect --budget-minutes 25 --vlr-rps 3
+      - name: Save Valorant part
+        if: always()
+        run: |
+          git config user.name "arbscan-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f data/backtest
+          git commit -q -m "dataset: valorant map scores $(date -u +%Y-%m-%dT%H:%MZ)" || exit 0
+          for i in 1 2 3 4 5; do git pull -q --rebase && git push -q && break; sleep 5; done
       - name: Kalshi prices for CS2, LoL and Dota 2
         env:
           BUDGET: ${{ inputs.budget_minutes }}
@@ -36,8 +44,6 @@ jobs:
       - name: Save
         if: always()
         run: |
-          git config user.name "arbscan-bot"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -f data/dataset data/backtest
           git commit -q -m "dataset $(date -u +%Y-%m-%dT%H:%MZ)" || exit 0
           for i in 1 2 3 4 5; do git pull -q --rebase && git push -q && break; sleep 5; done
