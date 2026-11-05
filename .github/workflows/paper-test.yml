@@ -1,0 +1,61 @@
+# Runs arbscan's esports paper test on GitHub's servers, so your computer can stay off.
+# Every 10 minutes it watches Kalshi + Polymarket US for 7 minutes, logs every arb, and
+# checks 20 seconds later whether you could still have filled it. It never places orders.
+#
+# Results: data/REPORT.md (plain-English summary) and data/paper.jsonl (raw log).
+# Keep the repository PUBLIC: GitHub Actions minutes are free and unlimited for public
+# repos, but a private repo would run out of free minutes in about two days.
+name: paper-test
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: paper-test
+  cancel-in-progress: false
+
+env:
+  STOP_AFTER: "2026-11-12T23:59:00Z"   # the test switches itself off after this
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Stop after the test window
+        id: window
+        run: |
+          if [ "$(date -u +%s)" -gt "$(date -u -d "$STOP_AFTER" +%s)" ]; then
+            echo "Test window is over; nothing to do."
+            echo "over=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.window.outputs.over != 'true'
+
+      - uses: actions/setup-python@v5
+        if: steps.window.outputs.over != 'true'
+        with:
+          python-version: "3.12"
+
+      - name: Watch for 7 minutes (read-only, no orders)
+        if: steps.window.outputs.over != 'true'
+        run: python arbscan.py --paper --minutes 7 --watch 45 --recheck 20 --paper-log data/paper.jsonl
+
+      - name: Update the report
+        if: steps.window.outputs.over != 'true'
+        run: python arbscan.py --report data/paper.jsonl > data/REPORT.md
+
+      - name: Save results
+        if: steps.window.outputs.over != 'true'
+        run: |
+          git config user.name "arbscan-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git commit -q -m "paper test $(date -u +%Y-%m-%dT%H:%MZ)" || exit 0
+          for i in 1 2 3; do git pull -q --rebase && git push -q && break; sleep 5; done

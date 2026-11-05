@@ -1,0 +1,804 @@
+{
+ "_note": "Sample responses for arbscan --esports --demo, in the shape Kalshi's and Polymarket US's public APIs return. Teams and prices are made up.",
+ "recorded_at": "2026-11-05T03:00:00+00:00",
+ "responses": {
+  "https://api.elections.kalshi.com/trade-api/v2/events?series_ticker=KXVALORANTGAME&status=open&with_nested_markets=true&limit=200": {
+   "events": [
+    {
+     "event_ticker": "KXVALORANTGAME-26NOV071500LEVC9",
+     "title": "Leviatán Esports vs Cloud9",
+     "sub_title": "",
+     "markets": [
+      {
+       "ticker": "KXVALORANTGAME-26NOV071500LEVC9-LEV",
+       "event_ticker": "KXVALORANTGAME-26NOV071500LEVC9",
+       "yes_sub_title": "Leviatán Esports",
+       "no_sub_title": "Leviatán Esports",
+       "status": "active"
+      },
+      {
+       "ticker": "KXVALORANTGAME-26NOV071500LEVC9-C9",
+       "event_ticker": "KXVALORANTGAME-26NOV071500LEVC9",
+       "yes_sub_title": "Cloud9",
+       "no_sub_title": "Cloud9",
+       "status": "active"
+      }
+     ]
+    },
+    {
+     "event_ticker": "KXVALORANTGAME-26NOV061900SENKRU",
+     "title": "Sentinels vs KRÜ Esports",
+     "sub_title": "",
+     "markets": [
+      {
+       "ticker": "KXVALORANTGAME-26NOV061900SENKRU-SEN",
+       "event_ticker": "KXVALORANTGAME-26NOV061900SENKRU",
+       "yes_sub_title": "Sentinels",
+       "no_sub_title": "Sentinels",
+       "status": "active"
+      },
+      {
+       "ticker": "KXVALORANTGAME-26NOV061900SENKRU-KRU",
+       "event_ticker": "KXVALORANTGAME-26NOV061900SENKRU",
+       "yes_sub_title": "KRÜ Esports",
+       "no_sub_title": "KRÜ Esports",
+       "status": "active"
+      }
+     ]
+    }
+   ],
+   "cursor": ""
+  },
+  "https://api.elections.kalshi.com/trade-api/v2/events?series_ticker=KXCS2GAME&status=open&with_nested_markets=true&limit=200": {
+   "events": [
+    {
+     "event_ticker": "KXCS2GAME-26NOV061300SPIFAZE",
+     "title": "Team Spirit vs FaZe Clan",
+     "sub_title": "",
+     "markets": [
+      {
+       "ticker": "KXCS2GAME-26NOV061300SPIFAZE-SPI",
+       "event_ticker": "KXCS2GAME-26NOV061300SPIFAZE",
+       "yes_sub_title": "Team Spirit",
+       "no_sub_title": "Team Spirit",
+       "status": "active"
+      },
+      {
+       "ticker": "KXCS2GAME-26NOV061300SPIFAZE-FAZE",
+       "event_ticker": "KXCS2GAME-26NOV061300SPIFAZE",
+       "yes_sub_title": "FaZe Clan",
+       "no_sub_title": "FaZe Clan",
+       "status": "active"
+      }
+     ]
+    },
+    {
+     "event_ticker": "KXCS2GAME-26NOV051800VITNAVI",
+     "title": "Team Vitality vs Natus Vincere",
+     "sub_title": "",
+     "markets": [
+      {
+       "ticker": "KXCS2GAME-26NOV051800VITNAVI-VIT",
+       "event_ticker": "KXCS2GAME-26NOV051800VITNAVI",
+       "yes_sub_title": "Team Vitality",
+       "no_sub_title": "Team Vitality",
+       "status": "active"
+      },
+      {
+       "ticker": "KXCS2GAME-26NOV051800VITNAVI-NAVI",
+       "event_ticker": "KXCS2GAME-26NOV051800VITNAVI",
+       "yes_sub_title": "Natus Vincere",
+       "no_sub_title": "Natus Vincere",
+       "status": "active"
+      }
+     ]
+    }
+   ],
+   "cursor": ""
+  },
+  "https://api.elections.kalshi.com/trade-api/v2/events?series_ticker=KXLOLGAME&status=open&with_nested_markets=true&limit=200": {
+   "events": [
+    {
+     "event_ticker": "KXLOLGAME-26NOV071000T1GEN",
+     "title": "T1 vs Gen.G",
+     "sub_title": "",
+     "markets": [
+      {
+       "ticker": "KXLOLGAME-26NOV071000T1GEN-T1",
+       "event_ticker": "KXLOLGAME-26NOV071000T1GEN",
+       "yes_sub_title": "T1",
+       "no_sub_title": "T1",
+       "status": "active"
+      },
+      {
+       "ticker": "KXLOLGAME-26NOV071000T1GEN-GEN",
+       "event_ticker": "KXLOLGAME-26NOV071000T1GEN",
+       "yes_sub_title": "Gen.G",
+       "no_sub_title": "Gen.G",
+       "status": "active"
+      }
+     ]
+    }
+   ],
+   "cursor": ""
+  },
+  "https://api.elections.kalshi.com/trade-api/v2/events?series_ticker=KXDOTA2GAME&status=open&with_nested_markets=true&limit=200": {
+   "events": [],
+   "cursor": ""
+  },
+  "https://gateway.polymarket.us/v1/search?query=valorant": {
+   "events": [
+    {
+     "slug": "aec-val-lev-c9-2026-11-07-event",
+     "markets": [
+      {
+       "id": 93252,
+       "slug": "aec-val-lev-c9-2026-11-07",
+       "question": "Valorant: Leviatán vs Cloud9 (BO3) - VCT Game Changers",
+       "category": "sports",
+       "subcategory": "esports",
+       "active": true,
+       "closed": false,
+       "sportsMarketTypeV2": "MONEYLINE",
+       "sportsMarketType": "esports_match_winner",
+       "marketSides": [
+        {
+         "id": 0,
+         "marketSideType": "SIDE",
+         "identifier": "C9",
+         "description": "Cloud9",
+         "long": true
+        },
+        {
+         "id": 1,
+         "marketSideType": "SIDE",
+         "identifier": "LEV",
+         "description": "Leviatán",
+         "long": false
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "slug": "aec-val-sen-kru-2026-11-06-map1-event",
+     "markets": [
+      {
+       "id": 1037,
+       "slug": "aec-val-sen-kru-2026-11-06-map1",
+       "question": "Valorant: Sentinels vs KRÜ Esports - Map 1 Winner",
+       "category": "sports",
+       "subcategory": "esports",
+       "active": true,
+       "closed": false,
+       "sportsMarketTypeV2": "MONEYLINE",
+       "sportsMarketType": "esports_match_winner",
+       "marketSides": [
+        {
+         "id": 0,
+         "marketSideType": "SIDE",
+         "identifier": "SEN",
+         "description": "Sentinels",
+         "long": true
+        },
+        {
+         "id": 1,
+         "marketSideType": "SIDE",
+         "identifier": "KRU",
+         "description": "KRÜ Esports",
+         "long": false
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "https://gateway.polymarket.us/v1/search?query=counter-strike": {
+   "events": [
+    {
+     "slug": "aec-cs2-spia-faze-2026-11-06-event",
+     "markets": [
+      {
+       "id": 77763,
+       "slug": "aec-cs2-spia-faze-2026-11-06",
+       "question": "Counter-Strike: Spirit Academy vs FaZe Clan (BO3)",
+       "category": "sports",
+       "subcategory": "esports",
+       "active": true,
+       "closed": false,
+       "sportsMarketTypeV2": "MONEYLINE",
+       "sportsMarketType": "esports_match_winner",
+       "marketSides": [
+        {
+         "id": 0,
+         "marketSideType": "SIDE",
+         "identifier": "SPIA",
+         "description": "Spirit Academy",
+         "long": true
+        },
+        {
+         "id": 1,
+         "marketSideType": "SIDE",
+         "identifier": "FAZE",
+         "description": "FaZe Clan",
+         "long": false
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "slug": "aec-cs2-vit-navi-2026-11-05-event",
+     "markets": [
+      {
+       "id": 85905,
+       "slug": "aec-cs2-vit-navi-2026-11-05",
+       "question": "Counter-Strike: Vitality vs NAVI (BO3)",
+       "category": "sports",
+       "subcategory": "esports",
+       "active": true,
+       "closed": false,
+       "sportsMarketTypeV2": "MONEYLINE",
+       "sportsMarketType": "esports_match_winner",
+       "marketSides": [
+        {
+         "id": 0,
+         "marketSideType": "SIDE",
+         "identifier": "VIT",
+         "description": "Vitality",
+         "long": true
+        },
+        {
+         "id": 1,
+         "marketSideType": "SIDE",
+         "identifier": "NAVI",
+         "description": "NAVI",
+         "long": false
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "https://gateway.polymarket.us/v1/search?query=cs2": {
+   "events": [
+    {
+     "slug": "aec-cs2-spia-faze-2026-11-06-event",
+     "markets": [
+      {
+       "id": 77763,
+       "slug": "aec-cs2-spia-faze-2026-11-06",
+       "question": "Counter-Strike: Spirit Academy vs FaZe Clan (BO3)",
+       "category": "sports",
+       "subcategory": "esports",
+       "active": true,
+       "closed": false,
+       "sportsMarketTypeV2": "MONEYLINE",
+       "sportsMarketType": "esports_match_winner",
+       "marketSides": [
+        {
+         "id": 0,
+         "marketSideType": "SIDE",
+         "identifier": "SPIA",
+         "description": "Spirit Academy",
+         "long": true
+        },
+        {
+         "id": 1,
+         "marketSideType": "SIDE",
+         "identifier": "FAZE",
+         "description": "FaZe Clan",
+         "long": false
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "slug": "aec-cs2-vit-navi-2026-11-05-event",
+     "markets": [
+      {
+       "id": 85905,
+       "slug": "aec-cs2-vit-navi-2026-11-05",
+       "question": "Counter-Strike: Vitality vs NAVI (BO3)",
+       "category": "sports",
+       "subcategory": "esports",
+       "active": true,
+       "closed": false,
+       "sportsMarketTypeV2": "MONEYLINE",
+       "sportsMarketType": "esports_match_winner",
+       "marketSides": [
+        {
+         "id": 0,
+         "marketSideType": "SIDE",
+         "identifier": "VIT",
+         "description": "Vitality",
+         "long": true
+        },
+        {
+         "id": 1,
+         "marketSideType": "SIDE",
+         "identifier": "NAVI",
+         "description": "NAVI",
+         "long": false
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "https://gateway.polymarket.us/v1/search?query=league+of+legends": {
+   "events": [
+    {
+     "slug": "aec-lol-t1-gen-2026-11-07-event",
+     "markets": [
+      {
+       "id": 79817,
+       "slug": "aec-lol-t1-gen-2026-11-07",
+       "question": "League of Legends: T1 vs Gen.G (BO5) - Worlds",
+       "category": "sports",
+       "subcategory": "esports",
+       "active": true,
+       "closed": false,
+       "sportsMarketTypeV2": "MONEYLINE",
+       "sportsMarketType": "esports_match_winner",
+       "marketSides": [
+        {
+         "id": 0,
+         "marketSideType": "SIDE",
+         "identifier": "GEN",
+         "description": "Gen.G",
+         "long": true
+        },
+        {
+         "id": 1,
+         "marketSideType": "SIDE",
+         "identifier": "T1",
+         "description": "T1",
+         "long": false
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "https://gateway.polymarket.us/v1/search?query=dota": {
+   "events": [
+    {
+     "slug": "aec-dota-tun-gg-2026-11-06-event",
+     "markets": [
+      {
+       "id": 40936,
+       "slug": "aec-dota-tun-gg-2026-11-06",
+       "question": "Dota 2: Tundra vs Gaimin Gladiators (BO2)",
+       "category": "sports",
+       "subcategory": "esports",
+       "active": true,
+       "closed": false,
+       "sportsMarketTypeV2": "MONEYLINE",
+       "sportsMarketType": "esports_match_winner",
+       "marketSides": [
+        {
+         "id": 0,
+         "marketSideType": "SIDE",
+         "identifier": "TUN",
+         "description": "Tundra Esports",
+         "long": true
+        },
+        {
+         "id": 1,
+         "marketSideType": "SIDE",
+         "identifier": "GG",
+         "description": "Gaimin Gladiators",
+         "long": false
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "https://gateway.polymarket.us/v1/markets?active=true&closed=false&limit=100&offset=0": {
+   "markets": [
+    {
+     "id": 93252,
+     "slug": "aec-val-lev-c9-2026-11-07",
+     "question": "Valorant: Leviatán vs Cloud9 (BO3) - VCT Game Changers",
+     "category": "sports",
+     "subcategory": "esports",
+     "active": true,
+     "closed": false,
+     "sportsMarketTypeV2": "MONEYLINE",
+     "sportsMarketType": "esports_match_winner",
+     "marketSides": [
+      {
+       "id": 0,
+       "marketSideType": "SIDE",
+       "identifier": "C9",
+       "description": "Cloud9",
+       "long": true
+      },
+      {
+       "id": 1,
+       "marketSideType": "SIDE",
+       "identifier": "LEV",
+       "description": "Leviatán",
+       "long": false
+      }
+     ]
+    },
+    {
+     "id": 1037,
+     "slug": "aec-val-sen-kru-2026-11-06-map1",
+     "question": "Valorant: Sentinels vs KRÜ Esports - Map 1 Winner",
+     "category": "sports",
+     "subcategory": "esports",
+     "active": true,
+     "closed": false,
+     "sportsMarketTypeV2": "MONEYLINE",
+     "sportsMarketType": "esports_match_winner",
+     "marketSides": [
+      {
+       "id": 0,
+       "marketSideType": "SIDE",
+       "identifier": "SEN",
+       "description": "Sentinels",
+       "long": true
+      },
+      {
+       "id": 1,
+       "marketSideType": "SIDE",
+       "identifier": "KRU",
+       "description": "KRÜ Esports",
+       "long": false
+      }
+     ]
+    },
+    {
+     "id": 77763,
+     "slug": "aec-cs2-spia-faze-2026-11-06",
+     "question": "Counter-Strike: Spirit Academy vs FaZe Clan (BO3)",
+     "category": "sports",
+     "subcategory": "esports",
+     "active": true,
+     "closed": false,
+     "sportsMarketTypeV2": "MONEYLINE",
+     "sportsMarketType": "esports_match_winner",
+     "marketSides": [
+      {
+       "id": 0,
+       "marketSideType": "SIDE",
+       "identifier": "SPIA",
+       "description": "Spirit Academy",
+       "long": true
+      },
+      {
+       "id": 1,
+       "marketSideType": "SIDE",
+       "identifier": "FAZE",
+       "description": "FaZe Clan",
+       "long": false
+      }
+     ]
+    },
+    {
+     "id": 85905,
+     "slug": "aec-cs2-vit-navi-2026-11-05",
+     "question": "Counter-Strike: Vitality vs NAVI (BO3)",
+     "category": "sports",
+     "subcategory": "esports",
+     "active": true,
+     "closed": false,
+     "sportsMarketTypeV2": "MONEYLINE",
+     "sportsMarketType": "esports_match_winner",
+     "marketSides": [
+      {
+       "id": 0,
+       "marketSideType": "SIDE",
+       "identifier": "VIT",
+       "description": "Vitality",
+       "long": true
+      },
+      {
+       "id": 1,
+       "marketSideType": "SIDE",
+       "identifier": "NAVI",
+       "description": "NAVI",
+       "long": false
+      }
+     ]
+    },
+    {
+     "id": 79817,
+     "slug": "aec-lol-t1-gen-2026-11-07",
+     "question": "League of Legends: T1 vs Gen.G (BO5) - Worlds",
+     "category": "sports",
+     "subcategory": "esports",
+     "active": true,
+     "closed": false,
+     "sportsMarketTypeV2": "MONEYLINE",
+     "sportsMarketType": "esports_match_winner",
+     "marketSides": [
+      {
+       "id": 0,
+       "marketSideType": "SIDE",
+       "identifier": "GEN",
+       "description": "Gen.G",
+       "long": true
+      },
+      {
+       "id": 1,
+       "marketSideType": "SIDE",
+       "identifier": "T1",
+       "description": "T1",
+       "long": false
+      }
+     ]
+    },
+    {
+     "id": 40936,
+     "slug": "aec-dota-tun-gg-2026-11-06",
+     "question": "Dota 2: Tundra vs Gaimin Gladiators (BO2)",
+     "category": "sports",
+     "subcategory": "esports",
+     "active": true,
+     "closed": false,
+     "sportsMarketTypeV2": "MONEYLINE",
+     "sportsMarketType": "esports_match_winner",
+     "marketSides": [
+      {
+       "id": 0,
+       "marketSideType": "SIDE",
+       "identifier": "TUN",
+       "description": "Tundra Esports",
+       "long": true
+      },
+      {
+       "id": 1,
+       "marketSideType": "SIDE",
+       "identifier": "GG",
+       "description": "Gaimin Gladiators",
+       "long": false
+      }
+     ]
+    },
+    {
+     "id": 20022,
+     "slug": "aec-nfl-buf-kc-2026-11-08",
+     "question": "Bills vs Chiefs",
+     "category": "sports",
+     "subcategory": "esports",
+     "active": true,
+     "closed": false,
+     "sportsMarketTypeV2": "MONEYLINE",
+     "sportsMarketType": "esports_match_winner",
+     "marketSides": [
+      {
+       "id": 0,
+       "marketSideType": "SIDE",
+       "identifier": "KC",
+       "description": "Chiefs",
+       "long": true
+      },
+      {
+       "id": 1,
+       "marketSideType": "SIDE",
+       "identifier": "BUF",
+       "description": "Bills",
+       "long": false
+      }
+     ]
+    }
+   ]
+  },
+  "https://api.elections.kalshi.com/trade-api/v2/markets/KXVALORANTGAME-26NOV071500LEVC9-C9/orderbook": {
+   "orderbook_fp": {
+    "yes_dollars": [
+     [
+      "0.41",
+      "250.00"
+     ],
+     [
+      "0.42",
+      "90.00"
+     ]
+    ],
+    "no_dollars": [
+     [
+      "0.53",
+      "400.00"
+     ],
+     [
+      "0.54",
+      "150.00"
+     ]
+    ]
+   }
+  },
+  "https://api.elections.kalshi.com/trade-api/v2/markets/KXVALORANTGAME-26NOV071500LEVC9-LEV/orderbook": {
+   "orderbook_fp": {
+    "yes_dollars": [
+     [
+      "0.54",
+      "300.00"
+     ],
+     [
+      "0.55",
+      "120.00"
+     ]
+    ],
+    "no_dollars": [
+     [
+      "0.39",
+      "200.00"
+     ],
+     [
+      "0.40",
+      "100.00"
+     ]
+    ]
+   }
+  },
+  "https://gateway.polymarket.us/v1/markets/aec-val-lev-c9-2026-11-07/book": {
+   "marketData": {
+    "marketSlug": "aec-val-lev-c9-2026-11-07",
+    "state": "MARKET_STATE_OPEN",
+    "bids": [
+     {
+      "px": {
+       "value": "0.50",
+       "currency": "USD"
+      },
+      "qty": "60"
+     },
+     {
+      "px": {
+       "value": "0.49",
+       "currency": "USD"
+      },
+      "qty": "200"
+     }
+    ],
+    "offers": [
+     {
+      "px": {
+       "value": "0.53",
+       "currency": "USD"
+      },
+      "qty": "100"
+     },
+     {
+      "px": {
+       "value": "0.54",
+       "currency": "USD"
+      },
+      "qty": "300"
+     }
+    ]
+   }
+  },
+  "https://api.elections.kalshi.com/trade-api/v2/markets/KXCS2GAME-26NOV051800VITNAVI-NAVI/orderbook": {
+   "orderbook_fp": {
+    "yes_dollars": [
+     [
+      "0.46",
+      "200.00"
+     ]
+    ],
+    "no_dollars": [
+     [
+      "0.50",
+      "200.00"
+     ]
+    ]
+   }
+  },
+  "https://api.elections.kalshi.com/trade-api/v2/markets/KXCS2GAME-26NOV051800VITNAVI-VIT/orderbook": {
+   "orderbook_fp": {
+    "yes_dollars": [
+     [
+      "0.47",
+      "200.00"
+     ]
+    ],
+    "no_dollars": [
+     [
+      "0.52",
+      "200.00"
+     ]
+    ]
+   }
+  },
+  "https://gateway.polymarket.us/v1/markets/aec-cs2-vit-navi-2026-11-05/book": {
+   "marketData": {
+    "marketSlug": "aec-cs2-vit-navi-2026-11-05",
+    "state": "MARKET_STATE_OPEN",
+    "bids": [
+     {
+      "px": {
+       "value": "0.49",
+       "currency": "USD"
+      },
+      "qty": "150"
+     }
+    ],
+    "offers": [
+     {
+      "px": {
+       "value": "0.52",
+       "currency": "USD"
+      },
+      "qty": "150"
+     }
+    ]
+   }
+  },
+  "https://api.elections.kalshi.com/trade-api/v2/markets/KXLOLGAME-26NOV071000T1GEN-GEN/orderbook": {
+   "orderbook_fp": {
+    "yes_dollars": [
+     [
+      "0.57",
+      "300.00"
+     ]
+    ],
+    "no_dollars": [
+     [
+      "0.41",
+      "300.00"
+     ]
+    ]
+   }
+  },
+  "https://api.elections.kalshi.com/trade-api/v2/markets/KXLOLGAME-26NOV071000T1GEN-T1/orderbook": {
+   "orderbook_fp": {
+    "yes_dollars": [
+     [
+      "0.40",
+      "200.00"
+     ]
+    ],
+    "no_dollars": [
+     [
+      "0.58",
+      "200.00"
+     ]
+    ]
+   }
+  },
+  "https://gateway.polymarket.us/v1/markets/aec-lol-t1-gen-2026-11-07/book": {
+   "marketData": {
+    "marketSlug": "aec-lol-t1-gen-2026-11-07",
+    "state": "MARKET_STATE_OPEN",
+    "bids": [
+     {
+      "px": {
+       "value": "0.64",
+       "currency": "USD"
+      },
+      "qty": "150"
+     },
+     {
+      "px": {
+       "value": "0.63",
+       "currency": "USD"
+      },
+      "qty": "200"
+     }
+    ],
+    "offers": [
+     {
+      "px": {
+       "value": "0.66",
+       "currency": "USD"
+      },
+      "qty": "150"
+     }
+    ]
+   }
+  }
+ }
+}

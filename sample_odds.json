@@ -1,0 +1,596 @@
+{
+ "_note": "Sample feed for arbscan --demo. Same shape as The Odds API v4 /odds response; prices are made up. 'now' pins the clock so quote ages stay meaningful.",
+ "now": "2026-11-05T02:40:00Z",
+ "events": [
+  {
+   "id": "demo-nba-1",
+   "sport_key": "basketball_nba",
+   "sport_title": "NBA",
+   "commence_time": "2026-11-05T01:10:00Z",
+   "home_team": "Boston Celtics",
+   "away_team": "Los Angeles Lakers",
+   "bookmakers": [
+    {
+     "key": "kalshi",
+     "title": "Kalshi",
+     "last_update": "2026-11-05T02:39:50Z",
+     "markets": [
+      {
+       "key": "h2h",
+       "outcomes": [
+        {
+         "name": "Boston Celtics",
+         "price": 1.923
+        },
+        {
+         "name": "Los Angeles Lakers",
+         "price": 2.041
+        }
+       ],
+       "last_update": "2026-11-05T02:39:50Z"
+      }
+     ]
+    },
+    {
+     "key": "polymarket_us",
+     "title": "Polymarket (US)",
+     "last_update": "2026-11-05T02:39:55Z",
+     "markets": [
+      {
+       "key": "h2h",
+       "outcomes": [
+        {
+         "name": "Boston Celtics",
+         "price": 1.818
+        },
+        {
+         "name": "Los Angeles Lakers",
+         "price": 2.273
+        }
+       ],
+       "last_update": "2026-11-05T02:39:55Z"
+      }
+     ]
+    },
+    {
+     "key": "polymarket",
+     "title": "Polymarket",
+     "last_update": "2026-11-05T02:39:54Z",
+     "markets": [
+      {
+       "key": "h2h",
+       "outcomes": [
+        {
+         "name": "Boston Celtics",
+         "price": 1.887
+        },
+        {
+         "name": "Los Angeles Lakers",
+         "price": 2.174
+        }
+       ],
+       "last_update": "2026-11-05T02:39:54Z"
+      }
+     ]
+    },
+    {
+     "key": "pinnacle",
+     "title": "Pinnacle",
+     "last_update": "2026-11-05T02:39:40Z",
+     "markets": [
+      {
+       "key": "h2h",
+       "outcomes": [
+        {
+         "name": "Boston Celtics",
+         "price": 1.8
+        },
+        {
+         "name": "Los Angeles Lakers",
+         "price": 2.15
+        }
+       ],
+       "last_update": "2026-11-05T02:39:40Z"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "demo-nhl-1",
+   "sport_key": "icehockey_nhl",
+   "sport_title": "NHL",
+   "commence_time": "2026-11-06T00:00:00Z",
+   "home_team": "Boston Bruins",
+   "away_team": "New York Rangers",
+   "bookmakers": [
+    {
+     "key": "kalshi",
+     "title": "Kalshi",
+     "last_update": "2026-11-05T02:39:20Z",
+     "markets": [
+      {
+       "key": "h2h",
+       "outcomes": [
+        {
+         "name": "Boston Bruins",
+         "price": 2.0
+        },
+        {
+         "name": "New York Rangers",
+         "price": 1.923
+        }
+       ],
+       "last_update": "2026-11-05T02:39:20Z"
+      }
+     ]
+    },
+    {
+     "key": "polymarket_us",
+     "title": "Polymarket (US)",
+     "last_update": "2026-11-05T02:39:30Z",
+     "markets": [
+      {
+       "key": "h2h",
+       "outcomes": [
+        {
+         "name": "Boston Bruins",
+         "price": 1.887
+        },
+        {
+         "name": "New York Rangers",
+         "price": 2.041
+        }
+       ],
+       "last_update": "2026-11-05T02:39:30Z"
+      }
+     ]
+    },
+    {
+     "key": "pinnacle",
+     "title": "Pinnacle",
+     "last_update": "2026-11-05T02:39:00Z",
+     "markets": [
+      {
+       "key": "h2h",
+       "outcomes": [
+        {
+         "name": "Boston Bruins",
+         "price": 1.93
+        },
+        {
+         "name": "New York Rangers",
+         "price": 1.95
+        }
+       ],
+       "last_update": "2026-11-05T02:39:00Z"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "demo-nfl-1",
+   "sport_key": "americanfootball_nfl",
+   "sport_title": "NFL",
+   "commence_time": "2026-11-08T22:25:00Z",
+   "home_team": "Kansas City Chiefs",
+   "away_team": "Buffalo Bills",
+   "bookmakers": [
+    {
+     "key": "kalshi",
+     "title": "Kalshi",
+     "last_update": "2026-11-05T02:39:15Z",
+     "markets": [
+      {
+       "key": "h2h",
+       "outcomes": [
+        {
+         "name": "Kansas City Chiefs",
+         "price": 2.128
+        },
+        {
+         "name": "Buffalo Bills",
+         "price": 1.818
+        }
+       ],
+       "last_update": "2026-11-05T02:39:15Z"
+      }
+     ]
+    },
+    {
+     "key": "polymarket_us",
+     "title": "Polymarket (US)",
+     "last_update": "2026-11-05T02:39:10Z",
+     "markets": [
+      {
+       "key": "h2h",
+       "outcomes": [
+        {
+         "name": "Kansas City Chiefs",
+         "price": 1.923
+        },
+        {
+         "name": "Buffalo Bills",
+         "price": 2.041
+        }
+       ],
+       "last_update": "2026-11-05T02:39:10Z"
+      }
+     ]
+    },
+    {
+     "key": "pinnacle",
+     "title": "Pinnacle",
+     "last_update": "2026-11-05T02:38:30Z",
+     "markets": [
+      {
+       "key": "h2h",
+       "outcomes": [
+        {
+         "name": "Kansas City Chiefs",
+         "price": 1.98
+        },
+        {
+         "name": "Buffalo Bills",
+         "price": 1.9
+        }
+       ],
+       "last_update": "2026-11-05T02:38:30Z"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "demo-nba-2",
+   "sport_key": "basketball_nba",
+   "sport_title": "NBA",
+   "commence_time": "2026-11-05T23:30:00Z",
+   "home_team": "Miami Heat",
+   "away_team": "New York Knicks",
+   "bookmakers": [
+    {
+     "key": "kalshi",
+     "title": "Kalshi",
+     "last_update": "2026-11-05T02:39:30Z",
+     "markets": [
+      {
+       "key": "spreads",
+       "outcomes": [
+        {
+         "name": "Miami Heat",
+         "price": 2.222,
+         "point": -1.5
+        },
+        {
+         "name": "New York Knicks",
+         "price": 1.754,
+         "point": 1.5
+        }
+       ],
+       "last_update": "2026-11-05T02:39:30Z"
+      }
+     ]
+    },
+    {
+     "key": "polymarket_us",
+     "title": "Polymarket (US)",
+     "last_update": "2026-11-05T02:39:35Z",
+     "markets": [
+      {
+       "key": "spreads",
+       "outcomes": [
+        {
+         "name": "Miami Heat",
+         "price": 1.667,
+         "point": 1.5
+        },
+        {
+         "name": "New York Knicks",
+         "price": 2.381,
+         "point": -1.5
+        }
+       ],
+       "last_update": "2026-11-05T02:39:35Z"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "demo-nba-3",
+   "sport_key": "basketball_nba",
+   "sport_title": "NBA",
+   "commence_time": "2026-11-05T02:05:00Z",
+   "home_team": "Phoenix Suns",
+   "away_team": "Golden State Warriors",
+   "bookmakers": [
+    {
+     "key": "kalshi",
+     "title": "Kalshi",
+     "last_update": "2026-11-05T02:39:52Z",
+     "markets": [
+      {
+       "key": "h2h",
+       "outcomes": [
+        {
+         "name": "Phoenix Suns",
+         "price": 1.724
+        },
+        {
+         "name": "Golden State Warriors",
+         "price": 2.273
+        }
+       ],
+       "last_update": "2026-11-05T02:39:52Z"
+      },
+      {
+       "key": "totals",
+       "outcomes": [
+        {
+         "name": "Over",
+         "price": 2.128,
+         "point": 228.5
+        },
+        {
+         "name": "Under",
+         "price": 1.818,
+         "point": 228.5
+        }
+       ],
+       "last_update": "2026-11-05T02:39:52Z"
+      }
+     ]
+    },
+    {
+     "key": "polymarket_us",
+     "title": "Polymarket (US)",
+     "last_update": "2026-11-05T02:39:48Z",
+     "markets": [
+      {
+       "key": "h2h",
+       "outcomes": [
+        {
+         "name": "Phoenix Suns",
+         "price": 1.754
+        },
+        {
+         "name": "Golden State Warriors",
+         "price": 2.222
+        }
+       ],
+       "last_update": "2026-11-05T02:39:48Z"
+      },
+      {
+       "key": "totals",
+       "outcomes": [
+        {
+         "name": "Over",
+         "price": 1.852,
+         "point": 228.5
+        },
+        {
+         "name": "Under",
+         "price": 2.083,
+         "point": 228.5
+        }
+       ],
+       "last_update": "2026-11-05T02:39:48Z"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "demo-epl-1",
+   "sport_key": "soccer_epl",
+   "sport_title": "EPL",
+   "commence_time": "2026-11-07T15:00:00Z",
+   "home_team": "Arsenal",
+   "away_team": "Chelsea",
+   "bookmakers": [
+    {
+     "key": "kalshi",
+     "title": "Kalshi",
+     "last_update": "2026-11-05T02:38:00Z",
+     "markets": [
+      {
+       "key": "h2h",
+       "outcomes": [
+        {
+         "name": "Arsenal",
+         "price": 2.128
+        },
+        {
+         "name": "Draw",
+         "price": 3.704
+        },
+        {
+         "name": "Chelsea",
+         "price": 3.571
+        }
+       ],
+       "last_update": "2026-11-05T02:38:00Z"
+      }
+     ]
+    },
+    {
+     "key": "polymarket_us",
+     "title": "Polymarket (US)",
+     "last_update": "2026-11-05T02:38:20Z",
+     "markets": [
+      {
+       "key": "h2h",
+       "outcomes": [
+        {
+         "name": "Arsenal",
+         "price": 2.083
+        },
+        {
+         "name": "Draw",
+         "price": 3.571
+        },
+        {
+         "name": "Chelsea",
+         "price": 4.167
+        }
+       ],
+       "last_update": "2026-11-05T02:38:20Z"
+      }
+     ]
+    },
+    {
+     "key": "pinnacle",
+     "title": "Pinnacle",
+     "last_update": "2026-11-05T02:36:40Z",
+     "markets": [
+      {
+       "key": "h2h",
+       "outcomes": [
+        {
+         "name": "Arsenal",
+         "price": 2.1
+        },
+        {
+         "name": "Draw",
+         "price": 3.5
+        },
+        {
+         "name": "Chelsea",
+         "price": 3.6
+        }
+       ],
+       "last_update": "2026-11-05T02:36:40Z"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "demo-ncaaf-1",
+   "sport_key": "americanfootball_ncaaf",
+   "sport_title": "NCAAF",
+   "commence_time": "2026-11-07T17:00:00Z",
+   "home_team": "Michigan Wolverines",
+   "away_team": "Ohio State Buckeyes",
+   "bookmakers": [
+    {
+     "key": "kalshi",
+     "title": "Kalshi",
+     "last_update": "2026-11-05T02:38:30Z",
+     "markets": [
+      {
+       "key": "h2h",
+       "outcomes": [
+        {
+         "name": "Michigan Wolverines",
+         "price": 2.5
+        },
+        {
+         "name": "Ohio State Buckeyes",
+         "price": 1.613
+        }
+       ],
+       "last_update": "2026-11-05T02:38:30Z"
+      }
+     ]
+    },
+    {
+     "key": "polymarket_us",
+     "title": "Polymarket (US)",
+     "last_update": "2026-11-05T02:38:40Z",
+     "markets": [
+      {
+       "key": "h2h",
+       "outcomes": [
+        {
+         "name": "Michigan Wolverines",
+         "price": 2.439
+        },
+        {
+         "name": "Ohio State Buckeyes",
+         "price": 1.639
+        }
+       ],
+       "last_update": "2026-11-05T02:38:40Z"
+      }
+     ]
+    },
+    {
+     "key": "pinnacle",
+     "title": "Pinnacle",
+     "last_update": "2026-11-05T02:37:30Z",
+     "markets": [
+      {
+       "key": "h2h",
+       "outcomes": [
+        {
+         "name": "Michigan Wolverines",
+         "price": 2.75
+        },
+        {
+         "name": "Ohio State Buckeyes",
+         "price": 1.5
+        }
+       ],
+       "last_update": "2026-11-05T02:37:30Z"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "demo-nba-4",
+   "sport_key": "basketball_nba",
+   "sport_title": "NBA",
+   "commence_time": "2026-11-05T01:50:00Z",
+   "home_team": "Oklahoma City Thunder",
+   "away_team": "Denver Nuggets",
+   "bookmakers": [
+    {
+     "key": "kalshi",
+     "title": "Kalshi",
+     "last_update": "2026-11-05T02:37:00Z",
+     "markets": [
+      {
+       "key": "h2h",
+       "outcomes": [
+        {
+         "name": "Oklahoma City Thunder",
+         "price": 2.857
+        },
+        {
+         "name": "Denver Nuggets",
+         "price": 1.515
+        }
+       ],
+       "last_update": "2026-11-05T02:37:00Z"
+      }
+     ]
+    },
+    {
+     "key": "polymarket_us",
+     "title": "Polymarket (US)",
+     "last_update": "2026-11-05T02:39:53Z",
+     "markets": [
+      {
+       "key": "h2h",
+       "outcomes": [
+        {
+         "name": "Oklahoma City Thunder",
+         "price": 2.174
+        },
+        {
+         "name": "Denver Nuggets",
+         "price": 1.818
+        }
+       ],
+       "last_update": "2026-11-05T02:39:53Z"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
