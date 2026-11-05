@@ -1,15 +1,15 @@
-# Paper test: Nov 05 03:46 to Nov 05 05:18 UTC
+# Paper test: Nov 05 03:46 to Nov 05 05:26 UTC
 
-- Watched for about **1.1 hours** (90 scans, one every ~45s).
-- Matches listed on both venues per scan: **11.0** on average.
+- Watched for about **1.2 hours** (100 scans, one every ~45s).
+- Matches listed on both venues per scan: **11.1** on average.
 - Markets seen per scan: Kalshi 110, Polymarket US 23.
 - Arbs: **0** appearances across **0** matches.
 
-**Verdict:** Too early to tell: only 1.1 hours watched. Give it at least a day, ideally a week that includes a big tournament.
+**Verdict:** Too early to tell: only 1.2 hours watched. Give it at least a day, ideally a week that includes a big tournament.
 
 ## Maker strategy (simulated)
 
-- Resting Kalshi bids that would lock a profit if hedged: **153** posted across **4** matches (reposted each scan); average **$3.72** locked per bid if fully filled.
+- Resting Kalshi bids that would lock a profit if hedged: **163** posted across **4** matches (reposted each scan); average **$5.07** locked per bid if fully filled.
 - Filled (someone sold into the bid before the next scan): **0** (0.0% of bids).
 
 **Maker verdict:** Too early to tell.
