@@ -502,6 +502,26 @@ class Report(unittest.TestCase):
         self.assertIn("Every scan failed", out)
         self.assertIn("HTTP 403", out)
 
+    def test_counts_matches_not_contract_combinations(self):
+        # Regression: one match arbed via YES on A and via YES on B was reported as two matches.
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "log.jsonl")
+            t0 = datetime(2026, 11, 5, 18, 0, tzinfo=timezone.utc).timestamp()
+            ops = [("kalshi:M1-A:yes|polymarket_us:m1:short", "A vs B"),
+                   ("kalshi:M1-B:yes|polymarket_us:m1:long", "A vs B"),
+                   ("kalshi:M1-B:no|polymarket_us:m1:short", "A vs B"),
+                   ("kalshi:M2-C:yes|polymarket_us:m2:short", "C vs D")]
+            with open(path, "w", encoding="utf-8") as f:
+                for i in range(80):
+                    t = datetime.fromtimestamp(t0 + 45 * i, timezone.utc).isoformat()
+                    f.write(json.dumps({"type": "scan", "t": t, "pairs": 2, "arbs": 0}) + "\n")
+                    if i % 20 == 0:
+                        op, event = ops[i // 20]
+                        f.write(json.dumps({"type": "seen", "t": t, "op": op, "event": event,
+                                            "game": "CS2", "profit": 1.0}) + "\n")
+            out = E.report(path)
+        self.assertIn("**4** appearances across **2** matches", out)
+
     def test_gone_arbs_earn_nothing(self):
         out = self.report(hours=24, arb_every=60, fill="gone")
         self.assertIn("gone **24**", out)

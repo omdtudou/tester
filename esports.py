@@ -1195,10 +1195,12 @@ def report(path: str) -> str:
 
     sightings: Dict[str, List[datetime]] = defaultdict(list)
     game_of: Dict[str, str] = {}
+    match_of: Dict[str, str] = {}     # one match has several ops (YES on A, NO on B, ...)
     for r in rows:
         if r.get("type") == "seen" and parse_iso(r.get("t")):
             sightings[r["op"]].append(parse_iso(r["t"]))
             game_of[r["op"]] = r.get("game", "?")
+            match_of[r["op"]] = r.get("event") or r["op"]
     rechecks: Dict[str, List[dict]] = defaultdict(list)
     for r in rows:
         if r.get("type") == "recheck" and parse_iso(r.get("t")):
@@ -1241,7 +1243,7 @@ def report(path: str) -> str:
     if ok:
         out.append(f"- Markets seen per scan: Kalshi {sum(r.get('kalshi_markets', 0) for r in ok) / len(ok):.0f}, "
                    f"Polymarket US {sum(r.get('pmus_markets', 0) for r in ok) / len(ok):.0f}.")
-    out.append(f"- Arbs: **{len(appearances)}** appearances across **{len(sightings)}** matches"
+    out.append(f"- Arbs: **{len(appearances)}** appearances across **{len(set(match_of.values()))}** matches"
                + (f" ({', '.join(f'{g} {n}' for g, n in sorted(games.items()))})" if games else "") + ".")
     for d, st in by_delay.items():
         line = (f"- After {d:g}s ({who(d)}): fully fillable **{st['full']}**, partly **{st['part']}**, "
