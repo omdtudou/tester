@@ -1,24 +1,24 @@
-# Paper test: Nov 05 03:46 to Nov 10 20:58 UTC
+# Paper test: Nov 05 03:46 to Nov 10 21:06 UTC
 
-- Watched for about **135.1 hours** (10688 scans, one every ~45s).
+- Watched for about **135.2 hours** (10698 scans, one every ~45s).
 - Matches listed on both venues per scan: **9.2** on average.
 - Markets seen per scan: Kalshi 102, Polymarket US 21.
 - Arbs: **68** appearances across **17** matches (CS2 54, Dota 2 2, League of Legends 12).
-- After 2s (bot speed): fully fillable **45**, partly **5**, gone **18**; profit if placed then **$62.34**, about **$11.08 per day watched**.
-- After 20s (by hand): fully fillable **4**, partly **0**, gone **64**; profit if placed then **$28.64**, about **$5.09 per day watched**.
+- After 2s (bot speed): fully fillable **45**, partly **5**, gone **18**; profit if placed then **$62.34**, about **$11.07 per day watched**.
+- After 20s (by hand): fully fillable **4**, partly **0**, gone **64**; profit if placed then **$28.64**, about **$5.08 per day watched**.
 - How long they lasted: median 0s, longest 180s; 67 of 68 gone by the next scan.
 
-**Verdict:** Promising: about $11.08 a day, if a bot places each one within 2s. Worth building the automated version carefully and starting with small stakes. By hand (20s) it would be about $5.09 a day.
+**Verdict:** Promising: about $11.07 a day, if a bot places each one within 2s. Worth building the automated version carefully and starting with small stakes. By hand (20s) it would be about $5.08 a day.
 
 ## Maker strategy (simulated)
 
-- Resting Kalshi bids that would lock a profit if hedged: **42680** posted across **154** matches (reposted each scan); average **$6.55** locked per bid if fully filled.
+- Resting Kalshi bids that would lock a profit if hedged: **42751** posted across **155** matches (reposted each scan); average **$6.55** locked per bid if fully filled.
 - Filled (someone sold into the bid before the next scan): **133** (0.3% of bids).
-- Profit if hedged instantly (best case): **$129.07**, about **$22.93 per day watched**.
-- Profit if hedged when spotted (worst case, median 28s after the fill): **$-99.64**, about **$-17.70 per day watched**.
+- Profit if hedged instantly (best case): **$129.07**, about **$22.91 per day watched**.
+- Profit if hedged when spotted (worst case, median 28s after the fill): **$-99.64**, about **$-17.69 per day watched**.
 - Fills that lose money when hedged late: **97**; couldn't fully hedge: **3**.
 
-**Maker verdict:** Depends on hedging speed: about $22.93 a day if the hedge goes in instantly, $-17.70 if it lags. Only worth building if the bot hedges within a second.
+**Maker verdict:** Depends on hedging speed: about $22.91 a day if the hedge goes in instantly, $-17.69 if it lags. Only worth building if the bot hedges within a second.
 
 Fills are judged from Kalshi's public trade history: a bid counts as filled when a seller traded at or below its price. That's optimistic about getting filled (the bid is assumed first in line) and pessimistic about the hedge (spotted up to one scan late).
 
