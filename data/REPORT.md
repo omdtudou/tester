@@ -1,6 +1,6 @@
-# Paper test: Nov 05 03:46 to Nov 11 05:24 UTC
+# Paper test: Nov 05 03:46 to Nov 11 05:40 UTC
 
-- Watched for about **143.5 hours** (11348 scans, one every ~45s).
+- Watched for about **143.6 hours** (11358 scans, one every ~45s).
 - Matches listed on both venues per scan: **9.3** on average.
 - Markets seen per scan: Kalshi 100, Polymarket US 21.
 - Arbs: **68** appearances across **17** matches (CS2 54, Dota 2 2, League of Legends 12).
@@ -12,13 +12,13 @@
 
 ## Maker strategy (simulated)
 
-- Resting Kalshi bids that would lock a profit if hedged: **46218** posted across **161** matches (reposted each scan); average **$6.40** locked per bid if fully filled.
+- Resting Kalshi bids that would lock a profit if hedged: **46271** posted across **162** matches (reposted each scan); average **$6.39** locked per bid if fully filled.
 - Filled (someone sold into the bid before the next scan): **139** (0.3% of bids).
-- Profit if hedged instantly (best case): **$134.99**, about **$22.57 per day watched**.
-- Profit if hedged when spotted (worst case, median 28s after the fill): **$-93.91**, about **$-15.70 per day watched**.
+- Profit if hedged instantly (best case): **$134.99**, about **$22.56 per day watched**.
+- Profit if hedged when spotted (worst case, median 28s after the fill): **$-93.91**, about **$-15.69 per day watched**.
 - Fills that lose money when hedged late: **99**; couldn't fully hedge: **3**.
 
-**Maker verdict:** Depends on hedging speed: about $22.57 a day if the hedge goes in instantly, $-15.70 if it lags. Only worth building if the bot hedges within a second.
+**Maker verdict:** Depends on hedging speed: about $22.56 a day if the hedge goes in instantly, $-15.69 if it lags. Only worth building if the bot hedges within a second.
 
 Fills are judged from Kalshi's public trade history: a bid counts as filled when a seller traded at or below its price. That's optimistic about getting filled (the bid is assumed first in line) and pessimistic about the hedge (spotted up to one scan late).
 
