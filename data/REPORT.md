@@ -1,6 +1,6 @@
-# Paper test: Nov 05 03:46 to Nov 12 02:16 UTC
+# Paper test: Nov 05 03:46 to Nov 12 02:24 UTC
 
-- Watched for about **160.3 hours** (12676 scans, one every ~45s).
+- Watched for about **160.4 hours** (12686 scans, one every ~45s).
 - Matches listed on both venues per scan: **9.7** on average.
 - Markets seen per scan: Kalshi 98, Polymarket US 21.
 - Arbs: **74** appearances across **19** matches (CS2 60, Dota 2 2, League of Legends 12).
@@ -12,13 +12,13 @@
 
 ## Maker strategy (simulated)
 
-- Resting Kalshi bids that would lock a profit if hedged: **51633** posted across **199** matches (reposted each scan); average **$6.13** locked per bid if fully filled.
+- Resting Kalshi bids that would lock a profit if hedged: **51674** posted across **199** matches (reposted each scan); average **$6.12** locked per bid if fully filled.
 - Filled (someone sold into the bid before the next scan): **139** (0.3% of bids).
-- Profit if hedged instantly (best case): **$134.99**, about **$20.21 per day watched**.
-- Profit if hedged when spotted (worst case, median 28s after the fill): **$-93.91**, about **$-14.06 per day watched**.
+- Profit if hedged instantly (best case): **$134.99**, about **$20.20 per day watched**.
+- Profit if hedged when spotted (worst case, median 28s after the fill): **$-93.91**, about **$-14.05 per day watched**.
 - Fills that lose money when hedged late: **99**; couldn't fully hedge: **3**.
 
-**Maker verdict:** Depends on hedging speed: about $20.21 a day if the hedge goes in instantly, $-14.06 if it lags. Only worth building if the bot hedges within a second.
+**Maker verdict:** Depends on hedging speed: about $20.20 a day if the hedge goes in instantly, $-14.05 if it lags. Only worth building if the bot hedges within a second.
 
 Fills are judged from Kalshi's public trade history: a bid counts as filled when a seller traded at or below its price. That's optimistic about getting filled (the bid is assumed first in line) and pessimistic about the hedge (spotted up to one scan late).
 
